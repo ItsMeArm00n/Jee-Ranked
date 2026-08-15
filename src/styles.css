@@ -1,0 +1,420 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * JEE RANKED design system — competitive arena.
+ * Display: Anton (uppercase, italic headlines). Body: Inter. Data: JetBrains Mono.
+ * All colors are oklch tokens; never hardcode colors in components.
+ */
+
+@theme inline {
+  --font-display: "Anton", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--surface);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--foreground);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --background: oklch(0.13 0.012 285);
+  --foreground: oklch(0.98 0 0);
+  --surface: oklch(0.185 0.009 285);
+  --border: oklch(0.31 0.008 285);
+  --muted-foreground: oklch(0.6 0.01 285);
+  --primary: oklch(0.653 0.209 34);
+  --primary-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.62 0.21 27);
+  --success: oklch(0.72 0.17 152);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@keyframes timer-blink {
+  0%,
+  100% {
+    color: var(--color-foreground);
+  }
+  50% {
+    color: var(--color-primary);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Headline mask reveal — text slides up out of an invisible slot */
+@keyframes mask-rise {
+  from {
+    transform: translateY(110%) skewY(4deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) skewY(0deg);
+    opacity: 1;
+  }
+}
+
+/* Panels wipe in from the leading edge like a scoreboard flipping over */
+@keyframes wipe-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes shine-sweep {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(320%) skewX(-20deg);
+  }
+}
+
+@keyframes radar-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes bar-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 28px 0;
+  }
+}
+
+@keyframes flare-sweep {
+  0% {
+    transform: translateX(-60%) skewX(-12deg);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(160%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes impact-in {
+  0% {
+    transform: scale(1.35) skewX(-10deg);
+    opacity: 0;
+    letter-spacing: 0.15em;
+  }
+  60% {
+    transform: scale(0.98) skewX(0deg);
+    opacity: 1;
+    letter-spacing: -0.02em;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ticker-up {
+  from {
+    transform: translateY(60%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@utility animate-enter {
+  animation: slide-in 0.6s var(--ease-out-expo) both;
+}
+
+@utility timer-pulse {
+  animation: timer-blink 1s infinite steps(1);
+}
+
+@utility mask-reveal {
+  display: inline-block;
+  overflow: hidden;
+  & > * {
+    display: inline-block;
+    animation: mask-rise 0.9s var(--ease-out-expo) both;
+  }
+}
+
+@utility wipe-enter {
+  animation: wipe-in 0.75s var(--ease-out-expo) both;
+}
+
+@utility ticker-enter {
+  animation: ticker-up 0.5s var(--ease-out-expo) both;
+}
+
+@utility impact-enter {
+  animation: impact-in 0.7s var(--ease-out-expo) both;
+}
+
+/* Primary CTA: light sweeps across on hover, plate lifts a hair */
+@utility cta-sweep {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.35s var(--ease-out-expo),
+    box-shadow 0.35s var(--ease-out-expo);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-primary-foreground) 45%, transparent),
+      transparent
+    );
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -18px color-mix(in oklab, var(--color-primary) 70%, transparent);
+  }
+  &:hover::after {
+    animation: shine-sweep 0.85s var(--ease-out-expo);
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+  }
+}
+
+/* Answer options: accent bar fills from the left, card nudges forward */
+@utility option-fill {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.3s var(--ease-out-expo),
+    border-color 0.3s var(--ease-out-expo),
+    background-color 0.3s var(--ease-out-expo);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--color-primary);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.35s var(--ease-out-expo);
+  }
+  &:hover:not(:disabled) {
+    transform: translateX(4px);
+    background-color: color-mix(in oklab, var(--color-primary) 7%, transparent);
+  }
+  &:hover:not(:disabled)::before {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  &:active:not(:disabled) {
+    transform: translateX(4px) scale(0.995);
+  }
+}
+
+/* Rows in the leaderboard slide their accent edge on hover */
+@utility row-slide {
+  transition:
+    background-color 0.3s var(--ease-out-expo),
+    opacity 0.3s var(--ease-out-expo),
+    transform 0.3s var(--ease-out-expo);
+  &:hover {
+    opacity: 1;
+    transform: translateX(6px);
+    background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+  }
+}
+
+/* Underline that grows from the left on nav links */
+@utility link-underline {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    height: 1px;
+    width: 100%;
+    background: var(--color-primary);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s var(--ease-out-expo);
+  }
+  &:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* Matchmaking radar rings */
+@utility radar {
+  position: relative;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--color-primary);
+    border-radius: 9999px;
+    animation: radar-ring 2.6s var(--ease-out-expo) infinite;
+  }
+  &::after {
+    animation-delay: 1.3s;
+  }
+}
+
+/* Progress bars get moving stripes while live */
+@utility bar-live {
+  background-image: linear-gradient(
+    115deg,
+    color-mix(in oklab, var(--color-primary-foreground) 22%, transparent) 0 25%,
+    transparent 25% 50%,
+    color-mix(in oklab, var(--color-primary-foreground) 22%, transparent) 50% 75%,
+    transparent 75% 100%
+  );
+  background-size: 28px 100%;
+  animation: bar-stripes 1.1s linear infinite;
+}
+
+/* Result banner flare */
+@utility flare {
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-primary) 30%, transparent), transparent);
+    animation: flare-sweep 1.6s var(--ease-out-expo) 0.2s both;
+  }
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes dot-live {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@utility marquee {
+  animation: marquee-scroll 26s linear infinite;
+}
+
+@utility live-dot {
+  animation: dot-live 1.4s ease-in-out infinite;
+}
+
+/* Faint technical grid used behind hero and closing CTA */
+@utility arena-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-border) 55%, transparent) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 78%);
+}
+
+/* Subject cards lift and warm up on hover */
+@utility tilt-card {
+  transition:
+    transform 0.4s var(--ease-out-expo),
+    border-color 0.4s var(--ease-out-expo),
+    background-color 0.4s var(--ease-out-expo);
+  &:hover {
+    transform: translateY(-6px);
+    border-color: var(--color-primary);
+    background-color: color-mix(in oklab, var(--color-primary) 7%, transparent);
+  }
+}
+
+
