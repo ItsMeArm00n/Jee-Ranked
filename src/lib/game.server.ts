@@ -33,18 +33,19 @@ export async function ensureProfileRow(userId: string, email?: string | null) {
   const db = adminClient();
   const { data: existing } = await db
     .from("profiles")
-    .select("id, username, elo, wins, losses, draws, matches_played")
+    .select("id, username, elo, wins, losses, draws, matches_played, avatar_url, bio")
     .eq("id", userId)
     .maybeSingle();
   if (existing) return existing;
 
-  const base = (email?.split("@")[0] ?? "ranker").replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 14) || "ranker";
+  const base =
+    (email?.split("@")[0] ?? "ranker").replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 14) || "ranker";
   let username = base;
   for (let i = 0; i < 8; i++) {
     const { data, error } = await db
       .from("profiles")
       .insert({ id: userId, username })
-      .select("id, username, elo, wins, losses, draws, matches_played")
+      .select("id, username, elo, wins, losses, draws, matches_played, avatar_url, bio")
       .single();
     if (!error && data) return data;
     username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
@@ -216,7 +217,6 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
   if (inserts.length) await db.from("match_answers").insert(inserts);
   return state;
 }
-
 
 export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
   if (match.status !== "active" || !match.player2_id) return match;

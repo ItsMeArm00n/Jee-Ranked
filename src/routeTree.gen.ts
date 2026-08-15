@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/play'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMatchMatchIdRouteImport } from './routes/_authenticated/match.$matchId'
 import { Route as AuthenticatedReplayMatchIdRouteImport } from './routes/_authenticated/replay.$matchId'
 
@@ -35,6 +36,11 @@ const AuthenticatedPlayRoute = AuthenticatedPlayRouteImport.update({
   path: '/play',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMatchMatchIdRoute =
   AuthenticatedMatchMatchIdRouteImport.update({
     id: '/match/$matchId',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/play': typeof AuthenticatedPlayRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
 }
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/play': typeof AuthenticatedPlayRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
 }
@@ -68,20 +76,34 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/play': typeof AuthenticatedPlayRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/_authenticated/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/play' | '/match/$matchId' | '/replay/$matchId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/play'
+    | '/profile'
+    | '/match/$matchId'
+    | '/replay/$matchId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/play' | '/match/$matchId' | '/replay/$matchId'
+  to:
+    | '/'
+    | '/auth'
+    | '/play'
+    | '/profile'
+    | '/match/$matchId'
+    | '/replay/$matchId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/play'
+    | '/_authenticated/profile'
     | '/_authenticated/match/$matchId'
     | '/_authenticated/replay/$matchId'
   fileRoutesById: FileRoutesById
@@ -122,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlayRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/match/$matchId': {
       id: '/_authenticated/match/$matchId'
       path: '/match/$matchId'
@@ -141,12 +170,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlayRoute: typeof AuthenticatedPlayRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedMatchMatchIdRoute: typeof AuthenticatedMatchMatchIdRoute
   AuthenticatedReplayMatchIdRoute: typeof AuthenticatedReplayMatchIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlayRoute: AuthenticatedPlayRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedMatchMatchIdRoute: AuthenticatedMatchMatchIdRoute,
   AuthenticatedReplayMatchIdRoute: AuthenticatedReplayMatchIdRoute,
 }

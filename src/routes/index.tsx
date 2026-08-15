@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Avatar } from "@/components/Avatar";
 import { useSession } from "@/hooks/useSession";
 import { getGlobalStats, getLeaderboard, getMyProfile } from "@/lib/game.functions";
 
@@ -25,14 +26,19 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: ({ context }) =>
-    context.queryClient.ensureQueryData({ queryKey: ["leaderboard"], queryFn: () => getLeaderboard() }),
+    context.queryClient.ensureQueryData({
+      queryKey: ["leaderboard"],
+      queryFn: () => getLeaderboard(),
+    }),
   component: Home,
   errorComponent: ({ error }) => (
     <div role="alert" className="p-12 text-center font-mono text-xs uppercase">
       {error.message}
     </div>
   ),
-  notFoundComponent: () => <div className="p-12 text-center font-mono text-xs uppercase">Nothing here.</div>,
+  notFoundComponent: () => (
+    <div className="p-12 text-center font-mono text-xs uppercase">Nothing here.</div>
+  ),
 });
 
 const TIERS = [
@@ -49,17 +55,20 @@ const SUBJECTS = [
   {
     code: "PHY",
     name: "Physics",
-    blurb: "Kinematics, rotational dynamics, electromagnetism and modern physics — single-answer MCQs at JEE Main tempo.",
+    blurb:
+      "Kinematics, rotational dynamics, electromagnetism and modern physics — single-answer MCQs at JEE Main tempo.",
   },
   {
     code: "CHE",
     name: "Chemistry",
-    blurb: "Physical, organic and inorganic mixed into the same paper so nobody gets a comfortable run.",
+    blurb:
+      "Physical, organic and inorganic mixed into the same paper so nobody gets a comfortable run.",
   },
   {
     code: "MAT",
     name: "Mathematics",
-    blurb: "Calculus, coordinate geometry, algebra and probability. Speed is scored as heavily as accuracy.",
+    blurb:
+      "Calculus, coordinate geometry, algebra and probability. Speed is scored as heavily as accuracy.",
   },
 ];
 
@@ -130,8 +139,8 @@ function Home() {
             </h1>
 
             <p className="ticker-enter max-w-xl font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground [animation-delay:320ms]">
-              Matched against a real aspirant in seconds. Same ten questions, same ten minutes, same paper. Most
-              correct answers takes the rating off the other side of the table.
+              Matched against a real aspirant in seconds. Same ten questions, same ten minutes, same
+              paper. Most correct answers takes the rating off the other side of the table.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -162,7 +171,9 @@ function Home() {
                     {profile.data?.rank ?? (session ? "…" : "Unranked")}
                   </h2>
                   <p className="mt-2 font-mono text-xl text-primary">
-                    {profile.data ? `${profile.data.elo.toLocaleString()} ELO` : "1,200 ELO on signup"}
+                    {profile.data
+                      ? `${profile.data.elo.toLocaleString()} ELO`
+                      : "1,200 ELO on signup"}
                   </p>
                 </div>
                 <div className="text-right font-mono text-xs text-muted-foreground">
@@ -176,9 +187,15 @@ function Home() {
                   { k: "Duels", v: stats.data?.duels ?? 0 },
                   { k: "Questions", v: stats.data?.questions ?? 0 },
                 ].map((s, i) => (
-                  <div key={s.k} style={{ animationDelay: `${300 + i * 90}ms` }} className="ticker-enter">
+                  <div
+                    key={s.k}
+                    style={{ animationDelay: `${300 + i * 90}ms` }}
+                    className="ticker-enter"
+                  >
                     <div className="font-display text-4xl tabular-nums">{s.v}</div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{s.k}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {s.k}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -215,8 +232,12 @@ function Home() {
         <section className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           <div className="wipe-enter border border-border bg-surface/50 p-8 lg:col-span-8">
             <div className="mb-6 flex items-end justify-between">
-              <h2 className="font-display text-3xl uppercase italic tracking-tighter">Global leaderboard</h2>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Top 10</span>
+              <h2 className="font-display text-3xl uppercase italic tracking-tighter">
+                Global leaderboard
+              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Top 10
+              </span>
             </div>
             <div className="space-y-2">
               {(leaderboard.data ?? []).length === 0 ? (
@@ -229,11 +250,20 @@ function Home() {
                     key={p.id}
                     style={{ animationDelay: `${150 + i * 55}ms` }}
                     className={`row-slide ticker-enter flex items-center justify-between border border-foreground/5 p-3 font-mono text-sm ${
-                      i === 0 ? "bg-foreground/5" : i === 1 ? "opacity-80" : i === 2 ? "opacity-60" : "opacity-50"
+                      i === 0
+                        ? "bg-foreground/5"
+                        : i === 1
+                          ? "opacity-80"
+                          : i === 2
+                            ? "opacity-60"
+                            : "opacity-50"
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <span className={i === 0 ? "text-primary" : ""}>{String(i + 1).padStart(2, "0")}</span>
+                      <span className={i === 0 ? "text-primary" : ""}>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <Avatar url={p.avatar_url} name={p.username} size={26} />
                       <span>{p.username.toUpperCase()}</span>
                       <span className="hidden text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
                         {p.rank}
@@ -252,7 +282,9 @@ function Home() {
           </div>
 
           <div className="wipe-enter border border-border p-8 [animation-delay:150ms] lg:col-span-4">
-            <h2 className="mb-6 font-display text-3xl uppercase italic tracking-tighter">Rank ladder</h2>
+            <h2 className="mb-6 font-display text-3xl uppercase italic tracking-tighter">
+              Rank ladder
+            </h2>
             <ul className="space-y-3 font-mono text-xs uppercase tracking-widest">
               {TIERS.map((t, i) => (
                 <li
@@ -291,11 +323,17 @@ function Home() {
                 c: "Most correct wins the rating. Every duel is stored and replayable, question by question, with the timer.",
               },
             ].map((s, i) => (
-              <div key={s.t} style={{ animationDelay: `${i * 120}ms` }} className="ticker-enter group cursor-default">
+              <div
+                key={s.t}
+                style={{ animationDelay: `${i * 120}ms` }}
+                className="ticker-enter group cursor-default"
+              >
                 <div className="font-display text-6xl uppercase transition-colors duration-300 group-hover:text-primary">
                   0{i + 1}
                 </div>
-                <h3 className="mt-4 font-display text-2xl uppercase italic tracking-tight">{s.t}</h3>
+                <h3 className="mt-4 font-display text-2xl uppercase italic tracking-tight">
+                  {s.t}
+                </h3>
                 <p className="mt-3 font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground transition-colors duration-300 group-hover:text-foreground">
                   {s.c}
                 </p>
@@ -307,7 +345,9 @@ function Home() {
         {/* SUBJECTS */}
         <section className="border-t border-border pt-16">
           <div className="flex items-end justify-between">
-            <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">The paper</h2>
+            <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">
+              The paper
+            </h2>
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {stats.data?.questions ?? 0} questions in the bank
             </span>
@@ -319,8 +359,12 @@ function Home() {
                 style={{ animationDelay: `${i * 110}ms` }}
                 className="tilt-card ticker-enter border border-border bg-surface/40 p-8"
               >
-                <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">{s.code}</div>
-                <h3 className="mt-4 font-display text-4xl uppercase italic tracking-tighter">{s.name}</h3>
+                <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">
+                  {s.code}
+                </div>
+                <h3 className="mt-4 font-display text-4xl uppercase italic tracking-tighter">
+                  {s.name}
+                </h3>
                 <p className="mt-4 font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
                   {s.blurb}
                 </p>
@@ -331,7 +375,9 @@ function Home() {
 
         {/* FAQ */}
         <section className="grid grid-cols-1 gap-10 border-t border-border pt-16 lg:grid-cols-12">
-          <h2 className="font-display text-5xl uppercase italic tracking-tighter lg:col-span-4">Arena rules</h2>
+          <h2 className="font-display text-5xl uppercase italic tracking-tighter lg:col-span-4">
+            Arena rules
+          </h2>
           <div className="lg:col-span-8">
             {FAQ.map((f, i) => (
               <details
@@ -377,8 +423,8 @@ function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-12 font-mono text-[10px] uppercase tracking-widest opacity-40 sm:flex-row sm:items-center sm:justify-between">
           <div>JEE Ranked // Competitive exam protocol</div>
           <div>
-            {stats.data?.players ?? 0} ranked players · {stats.data?.duels ?? 0} duels · {stats.data?.questions ?? 0}{" "}
-            questions
+            {stats.data?.players ?? 0} ranked players · {stats.data?.duels ?? 0} duels ·{" "}
+            {stats.data?.questions ?? 0} questions
           </div>
         </div>
       </footer>

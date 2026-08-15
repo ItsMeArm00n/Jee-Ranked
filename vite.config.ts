@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Deploy target for the Nitro build (defaults to cloudflare-module for Lovable).
+  // "vercel" produces .vercel/output so the git integration can deploy server functions.
+  nitro: {
+    preset: "vercel",
+  },
 });

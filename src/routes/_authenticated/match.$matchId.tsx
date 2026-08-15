@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Avatar } from "@/components/Avatar";
 import { getMatchState, submitAnswer } from "@/lib/game.functions";
 import { useSfx } from "@/hooks/useSfx";
 
@@ -27,11 +28,31 @@ function MatchPage() {
   const lastOpp = useRef(0);
   const endedFor = useRef<string | null>(null);
 
+  // Per-round result overlay.
+  const [showResult, setShowResult] = useState(false);
+  const lastResultIdx = useRef<number | null>(null);
+
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["match", matchId],
     queryFn: () => state({ data: { matchId } }),
     refetchInterval: (q) => (q.state.data?.status === "finished" ? false : 1500),
   });
+
+  useEffect(() => {
+    if (data?.status !== "active") {
+      setShowResult(false);
+      return;
+    }
+    const ri = data.lastResult?.index ?? null;
+    if (ri === null || ri === lastResultIdx.current) return;
+    lastResultIdx.current = ri;
+    setShowResult(true);
+  }, [data?.lastResult, data?.status]);
+  useEffect(() => {
+    if (!showResult) return;
+    const t = setTimeout(() => setShowResult(false), 4000);
+    return () => clearTimeout(t);
+  }, [showResult]);
 
   // Per-question shared clock: falls back to the match clock when between questions.
   const deadline = data?.questionEndsAt ?? data?.endsAt ?? null;
@@ -83,7 +104,9 @@ function MatchPage() {
     setPending(choice);
     try {
       play("select");
-      const res = await answer({ data: { matchId, index, choice: choice as "A" | "B" | "C" | "D" } });
+      const res = await answer({
+        data: { matchId, index, choice: choice as "A" | "B" | "C" | "D" },
+      });
       if (!res.ok) {
         play("error");
         toast.error(res.reason ?? "Answer rejected");
@@ -125,7 +148,12 @@ function MatchPage() {
         {/* VERSUS BAR */}
         <div className="wipe-enter flex items-center justify-between border-y border-border bg-surface/20 py-4">
           <div className="flex w-1/3 items-center gap-4">
-            <div className="size-12 bg-surface transition-transform duration-500 hover:-skew-x-12" />
+            <Avatar
+              url={data.me.avatar_url}
+              name={data.me.username}
+              size={48}
+              className="border border-border"
+            />
             <div className="ticker-enter [animation-delay:150ms]">
               <div className="font-bold">{data.me.username}</div>
               <div className="font-mono text-[10px] text-primary">{data.me.elo} ELO</div>
@@ -141,29 +169,42 @@ function MatchPage() {
               {clock(remaining)}
             </div>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              {data.question ? `Q${data.question.index + 1} / ${data.total} · 2 min shared` : "Shared timer"}
+              {data.question
+                ? `Q${data.question.index + 1} / ${data.total} · 2 min shared`
+                : "Shared timer"}
             </div>
           </div>
 
           <div className="flex w-1/3 items-center justify-end gap-4 text-right">
             <div className="ticker-enter [animation-delay:150ms]">
               <div className="font-bold">{data.opponent?.username ?? "—"}</div>
-              <div className="font-mono text-[10px] text-muted-foreground">{data.opponent?.elo ?? "—"} ELO</div>
+              <div className="font-mono text-[10px] text-muted-foreground">
+                {data.opponent?.elo ?? "—"} ELO
+              </div>
             </div>
-            <div className="size-12 bg-surface transition-transform duration-500 hover:skew-x-12" />
+            <Avatar
+              url={data.opponent?.avatar_url ?? null}
+              name={data.opponent?.username ?? "?"}
+              size={48}
+              className="border border-border"
+            />
           </div>
         </div>
-
 
         {data.status === "finished" && data.result ? (
           <div className="flare relative animate-enter overflow-hidden border border-primary bg-surface p-12">
             <div className="absolute top-0 right-0 h-full w-64 -skew-x-12 translate-x-32 bg-primary/5" />
             <div className="relative z-10">
               <div className="impact-enter font-display text-7xl uppercase italic tracking-tighter text-primary sm:text-8xl">
-                {data.result.outcome === "win" ? "Victory" : data.result.outcome === "loss" ? "Defeat" : "Draw"}
+                {data.result.outcome === "win"
+                  ? "Victory"
+                  : data.result.outcome === "loss"
+                    ? "Defeat"
+                    : "Draw"}
               </div>
               <div className="ticker-enter mt-4 font-mono text-xs uppercase tracking-widest text-muted-foreground [animation-delay:400ms]">
-                {data.me.username} {data.result.myScore} — {data.result.oppScore} {data.opponent?.username ?? "—"}
+                {data.me.username} {data.result.myScore} — {data.result.oppScore}{" "}
+                {data.opponent?.username ?? "—"}
               </div>
               <div className="mt-8 flex items-center gap-12">
                 <div className="ticker-enter [animation-delay:550ms]">
@@ -221,17 +262,22 @@ function MatchPage() {
                     </h1>
                   </div>
 
-                  <div key={`opts-${data.question.index}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div
+                    key={`opts-${data.question.index}`}
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                  >
                     {data.question.options.map((opt, i) => (
                       <button
                         key={opt.key}
-                        disabled={pending !== null}
+                        disabled={pending !== null || data.waitingForOpponent}
                         onMouseEnter={() => play("hover")}
                         onFocus={() => play("hover")}
                         style={{ animationDelay: `${120 + i * 80}ms` }}
                         onClick={() => pick(opt.key, data.question!.index)}
                         className={`option-fill ticker-enter group border border-border p-6 text-left font-mono hover:border-primary disabled:opacity-50 ${
-                          pending === opt.key ? "border-primary bg-primary/10" : ""
+                          pending === opt.key || data.myChoice === opt.key
+                            ? "border-primary bg-primary/10"
+                            : ""
                         }`}
                       >
                         <span className="mr-3 inline-block text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary">
@@ -241,6 +287,12 @@ function MatchPage() {
                       </button>
                     ))}
                   </div>
+
+                  {data.waitingForOpponent ? (
+                    <div className="animate-enter border border-primary/40 bg-primary/5 p-6 text-center font-mono text-xs uppercase tracking-[0.3em] text-primary">
+                      Answer locked in — waiting for your opponent to answer this question
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <div className="animate-enter border border-border bg-surface/40 p-12 text-center font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
@@ -293,8 +345,65 @@ function MatchPage() {
             </div>
           </div>
         )}
-
       </main>
+
+      {showResult && data.lastResult ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
+          <div className="animate-enter w-full max-w-md border border-border bg-surface p-8">
+            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Round result · Q{data.lastResult.index + 1}
+            </div>
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
+                <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  You
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-lg">
+                    {data.lastResult.mine.choice ?? "No answer"}
+                  </span>
+                  <span
+                    className={`font-mono text-xs font-bold uppercase tracking-widest ${
+                      data.lastResult.mine.correct ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    {data.lastResult.mine.correct ? "Right" : "Wrong"}
+                  </span>
+                </div>
+              </div>
+              {data.lastResult.theirs ? (
+                <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    {data.opponent?.username ?? "Opponent"}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-lg">
+                      {data.lastResult.theirs.choice ?? "No answer"}
+                    </span>
+                    <span
+                      className={`font-mono text-xs font-bold uppercase tracking-widest ${
+                        data.lastResult.theirs.correct ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {data.lastResult.theirs.correct ? "Right" : "Wrong"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              <div className="pt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                Correct answer:{" "}
+                <span className="text-primary">{data.lastResult.correctOption}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowResult(false)}
+              className="cta-sweep mt-8 w-full bg-primary py-3 font-mono text-xs uppercase tracking-widest text-primary-foreground"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

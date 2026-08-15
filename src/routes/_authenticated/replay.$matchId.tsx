@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Avatar } from "@/components/Avatar";
 import { getMatchReplay } from "@/lib/game.functions";
 import { useSfx } from "@/hooks/useSfx";
 
@@ -64,7 +65,10 @@ function ReplayPage() {
     };
   }, [playing, speed, duration]);
 
-  const events = useMemo(() => (data?.events ?? []).slice().sort((a, b) => a.atMs - b.atMs), [data]);
+  const events = useMemo(
+    () => (data?.events ?? []).slice().sort((a, b) => a.atMs - b.atMs),
+    [data],
+  );
   const past = useMemo(() => events.filter((e) => e.atMs <= t), [events, t]);
 
   // Fire sfx as the playhead crosses events
@@ -125,11 +129,19 @@ function ReplayPage() {
       <main className="mx-auto max-w-7xl space-y-10 px-6 py-10">
         <div className="wipe-enter flex flex-wrap items-end justify-between gap-6 border-b border-border pb-6">
           <div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Match replay</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Match replay
+            </span>
             <h1 className="mask-reveal font-display text-6xl uppercase italic leading-none tracking-tighter">
-              <span>
-                {data.me.username} <span className="text-primary">vs</span> {data.opponent.username}
-                {data.opponent.isBot ? <span className="ml-3 font-mono text-xs not-italic">BOT</span> : null}
+              <span className="flex flex-wrap items-center gap-3">
+                <Avatar url={data.me.avatar_url} name={data.me.username} size={40} />
+                {data.me.username}
+                <span className="text-primary">vs</span>
+                <Avatar url={data.opponent.avatar_url} name={data.opponent.username} size={40} />
+                {data.opponent.username}
+                {data.opponent.isBot ? (
+                  <span className="font-mono text-xs not-italic">BOT</span>
+                ) : null}
               </span>
             </h1>
           </div>
@@ -174,7 +186,9 @@ function ReplayPage() {
                     play("toggle");
                   }}
                   className={`border px-3 py-1 font-mono text-[11px] transition-colors duration-200 ${
-                    speed === s ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    speed === s
+                      ? "border-primary text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {s}×
@@ -218,7 +232,10 @@ function ReplayPage() {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="space-y-8 lg:col-span-8">
             {q ? (
-              <div key={current} className="animate-enter space-y-4 border border-border bg-surface/30 p-8">
+              <div
+                key={current}
+                className="animate-enter space-y-4 border border-border bg-surface/30 p-8"
+              >
                 <span className="font-mono text-xs uppercase text-primary">
                   {q.subject} / {q.topic} / Q{q.index + 1}
                 </span>
@@ -226,7 +243,8 @@ function ReplayPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {q.options.map((o) => {
                     const isCorrect = o.key === q.correct;
-                    const isMine = myAnswerHere?.choice === o.key && (myAnswerHere?.atMs ?? Infinity) <= t;
+                    const isMine =
+                      myAnswerHere?.choice === o.key && (myAnswerHere?.atMs ?? Infinity) <= t;
                     return (
                       <div
                         key={o.key}
@@ -240,7 +258,9 @@ function ReplayPage() {
                       >
                         <span className="mr-3">{o.key}.</span>
                         {o.text}
-                        {isMine ? <span className="ml-2 text-[10px] uppercase">your pick</span> : null}
+                        {isMine ? (
+                          <span className="ml-2 text-[10px] uppercase">your pick</span>
+                        ) : null}
                       </div>
                     );
                   })}
@@ -249,7 +269,9 @@ function ReplayPage() {
             ) : null}
 
             <div className="space-y-2">
-              <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Timeline</h3>
+              <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                Timeline
+              </h3>
               {events.map((e, i) => (
                 <button
                   key={`row-${i}`}

@@ -24,7 +24,6 @@ export function SiteHeader() {
     navigate({ to: "/auth", replace: true });
   }
 
-
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-md transition-colors duration-300">
       <Link
@@ -32,7 +31,10 @@ export function SiteHeader() {
         {...sfx}
         className="group font-display text-2xl italic tracking-tighter transition-transform duration-300 hover:-skew-x-6"
       >
-        JEE <span className="text-primary transition-opacity duration-300 group-hover:opacity-80">RANKED</span>
+        JEE{" "}
+        <span className="text-primary transition-opacity duration-300 group-hover:opacity-80">
+          RANKED
+        </span>
       </Link>
       <div className="flex items-center gap-6 font-mono text-xs">
         <div className="hidden flex-col items-end sm:flex">
@@ -54,14 +56,23 @@ export function SiteHeader() {
         </button>
 
         {session ? (
-          <button
-            onClick={signOut}
-            onMouseEnter={() => play("hover")}
-            onFocus={() => play("hover")}
-            className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
-          >
-            Sign out
-          </button>
+          <>
+            <Link
+              to="/profile"
+              {...sfx}
+              className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+            >
+              Profile
+            </Link>
+            <button
+              onClick={signOut}
+              onMouseEnter={() => play("hover")}
+              onFocus={() => play("hover")}
+              className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+            >
+              Sign out
+            </button>
+          </>
         ) : (
           <Link
             to="/auth"
@@ -73,6 +84,5 @@ export function SiteHeader() {
         )}
       </div>
     </nav>
-
   );
 }
