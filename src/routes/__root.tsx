@@ -12,8 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { SiteFooter } from "@/components/SiteFooter";
 import { supabase } from "@/integrations/supabase/client";
-
 
 function NotFoundComponent() {
   return (
@@ -83,16 +83,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "JEE Ranked — 1v1 JEE Question Duels with ELO" },
       {
         name: "description",
-        content: "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels.",
+        content:
+          "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels.",
       },
       { property: "og:title", content: "JEE Ranked — 1v1 JEE Question Duels with ELO" },
-      { property: "og:description", content: "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels." },
+      {
+        property: "og:description",
+        content:
+          "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "JEE Ranked — 1v1 JEE Question Duels with ELO" },
-      { name: "twitter:description", content: "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7f2c2cfc83ceb73d42b35757437a97b/id-preview-e7cc5d8a--afe6097a-d9c5-4536-83ff-267e57476e69.lovable.app-1786436101807.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7f2c2cfc83ceb73d42b35757437a97b/id-preview-e7cc5d8a--afe6097a-d9c5-4536-83ff-267e57476e69.lovable.app-1786436101807.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Get matched against a real opponent, race through the same JEE questions on a shared timer, and win ELO. Physics, Chemistry and Maths ranked duels.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7f2c2cfc83ceb73d42b35757437a97b/id-preview-e7cc5d8a--afe6097a-d9c5-4536-83ff-267e57476e69.lovable.app-1786436101807.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7f2c2cfc83ceb73d42b35757437a97b/id-preview-e7cc5d8a--afe6097a-d9c5-4536-83ff-267e57476e69.lovable.app-1786436101807.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -141,9 +158,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="flex min-h-screen flex-col">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <SiteFooter />
+      </div>
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
 }
-

@@ -298,12 +298,165 @@ export const leaveQueue = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const findUnrankedMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        subject: z.enum(["Physics", "Chemistry", "Mathematics", "All"]),
+        mode: z.enum(["solo", "random"]),
+        secondsPerQuestion: z.number().int().min(30).max(300).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { adminClient, ensureProfileRow, QUESTIONS_PER_MATCH } = await import("./game.server");
+    const db = adminClient();
+    const uid = context.userId;
+    await ensureProfileRow(uid, (context.claims as { email?: string })?.email);
+
+    // Already in a live or queued unranked match? Rejoin it.
+    const { data: mine } = await db
+      .from("matches")
+      .select("id, status")
+      .or(`player1_id.eq.${uid},player2_id.eq.${uid}`)
+      .in("status", ["waiting", "active"])
+      .eq("is_ranked", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (mine) return { matchId: mine.id as string, status: mine.status as string };
+
+    // Expire stale unranked queue entries.
+    await db
+      .from("matches")
+      .update({ status: "cancelled" })
+      .eq("status", "waiting")
+      .eq("is_ranked", false)
+      .lt("created_at", new Date(Date.now() - 3 * 60_000).toISOString());
+
+    // For solo mode, create match and start immediately — no opponent.
+    if (data.mode === "solo") {
+      const subjectFilter = data.subject === "All" ? null : data.subject;
+      const secondsPerQ = data.secondsPerQuestion ?? 120;
+
+      // Fetch questions filtered by subject.
+      let query = db.from("questions").select("id");
+      if (subjectFilter) query = query.eq("subject", subjectFilter);
+      const { data: pool } = await query;
+      const ids = (pool ?? []).map((q) => q.id as string);
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+      }
+      const picked = ids.slice(0, QUESTIONS_PER_MATCH);
+      const totalDuration = picked.length * secondsPerQ;
+      const now = Date.now();
+
+      const { data: created, error } = await db
+        .from("matches")
+        .insert({
+          player1_id: uid,
+          question_ids: picked,
+          duration_seconds: totalDuration,
+          is_ranked: false,
+          subject_filter: subjectFilter,
+          status: "active",
+          started_at: new Date(now).toISOString(),
+          ends_at: new Date(now + totalDuration * 1000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { matchId: created.id as string, status: "active" };
+    }
+
+    // Random mode: try to join an existing unranked queue with the same subject filter.
+    const subjectFilter = data.subject === "All" ? null : data.subject;
+    let joinQuery = db
+      .from("matches")
+      .select("id")
+      .eq("status", "waiting")
+      .eq("is_ranked", false)
+      .neq("player1_id", uid);
+    if (subjectFilter) joinQuery = joinQuery.eq("subject_filter", subjectFilter);
+    else joinQuery = joinQuery.is("subject_filter", null);
+    joinQuery = joinQuery.order("created_at", { ascending: true }).limit(1);
+    const { data: open } = await joinQuery.maybeSingle();
+
+    if (open) {
+      const { data: q } = await db
+        .from("matches")
+        .select("duration_seconds")
+        .eq("id", open.id)
+        .single();
+      const totalDuration = q?.duration_seconds ?? QUESTIONS_PER_MATCH * 120;
+      const now = Date.now();
+      const { data: joined } = await db
+        .from("matches")
+        .update({
+          player2_id: uid,
+          status: "active",
+          started_at: new Date(now).toISOString(),
+          ends_at: new Date(now + totalDuration * 1000).toISOString(),
+        })
+        .eq("id", open.id)
+        .eq("status", "waiting")
+        .select("id")
+        .maybeSingle();
+      if (joined) return { matchId: joined.id as string, status: "active" };
+    }
+
+    // No match found — create a new queue entry.
+    let query2 = db.from("questions").select("id");
+    if (subjectFilter) query2 = query2.eq("subject", subjectFilter);
+    const { data: pool2 } = await query2;
+    const ids2 = (pool2 ?? []).map((q) => q.id as string);
+    for (let i = ids2.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids2[i], ids2[j]] = [ids2[j]!, ids2[i]!];
+    }
+    const picked2 = ids2.slice(0, QUESTIONS_PER_MATCH);
+    const totalDuration2 = picked2.length * 120;
+
+    const { data: created2, error: err2 } = await db
+      .from("matches")
+      .insert({
+        player1_id: uid,
+        question_ids: picked2,
+        duration_seconds: totalDuration2,
+        is_ranked: false,
+        subject_filter: subjectFilter,
+      })
+      .select("id")
+      .single();
+    if (err2) throw new Error(err2.message);
+    return { matchId: created2.id as string, status: "waiting" };
+  });
+
+export const unrankedWithBot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { attachBot } = await import("./game.server");
+    const match = await attachBot(data.matchId, context.userId);
+    return { ok: !!match, matchId: data.matchId };
+  });
+
 export const getMatchState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { adminClient, advanceMatch, finalizeIfDone, rankTitle, SECONDS_PER_QUESTION } =
-      await import("./game.server");
+    const {
+      adminClient,
+      advanceMatch,
+      finalizeIfDone,
+      enforceAfk,
+      rankTitle,
+      SECONDS_PER_QUESTION,
+      AFK_GRACE_SECONDS,
+    } = await import("./game.server");
     const db = adminClient();
     const uid = context.userId;
 
@@ -312,7 +465,9 @@ export const getMatchState = createServerFn({ method: "POST" })
     if (raw.player1_id !== uid && raw.player2_id !== uid) throw new Error("Not your match");
 
     const round = await advanceMatch(raw);
-    const match = await finalizeIfDone(raw);
+    const isSolo = !raw.player2_id;
+    let match = isSolo ? raw : await enforceAfk(raw, round);
+    match = await finalizeIfDone(match);
     const isP1 = match.player1_id === uid;
     const opponentId: string | null = isP1 ? match.player2_id : match.player1_id;
     const total: number = match.question_ids.length;
@@ -365,6 +520,7 @@ export const getMatchState = createServerFn({ method: "POST" })
           ],
         };
         waitingForOpponent =
+          !isSolo &&
           mine.some((r) => r.question_index === currentIndex) &&
           !theirs.some((r) => r.question_index === currentIndex);
         myChoice = mine.find((r) => r.question_index === currentIndex)?.choice ?? null;
@@ -375,6 +531,16 @@ export const getMatchState = createServerFn({ method: "POST" })
     const oppScore = theirs.filter((r) => r.is_correct).length;
     const myDelta = isP1 ? match.player1_delta : match.player2_delta;
     const meProfile = prof(uid);
+
+    const afkSince = isP1 ? match.player1_afk_since : match.player2_afk_since;
+    const afk = afkSince
+      ? {
+          flagged: true,
+          forfeitAt: new Date(
+            new Date(afkSince).getTime() + AFK_GRACE_SECONDS * 1000,
+          ).toISOString(),
+        }
+      : { flagged: false, forfeitAt: null };
 
     // Result of the round that just closed (the one before the current one).
     let lastResult: {
@@ -405,6 +571,8 @@ export const getMatchState = createServerFn({ method: "POST" })
     return {
       matchId: match.id,
       status: match.status,
+      isRanked: match.is_ranked !== false,
+      isSolo,
       total,
       endsAt: match.ends_at,
       secondsPerQuestion: SECONDS_PER_QUESTION,
@@ -412,6 +580,9 @@ export const getMatchState = createServerFn({ method: "POST" })
       waitingForOpponent,
       myChoice,
       lastResult,
+      afk,
+      forfeitedByMe: match.forfeiter_id === uid,
+      forfeitReason: match.forfeit_reason ?? null,
       serverNow: new Date().toISOString(),
       me: {
         username: meProfile?.username ?? "You",
@@ -495,8 +666,73 @@ export const submitAnswer = createServerFn({ method: "POST" })
     });
     if (error && !error.message.includes("duplicate")) throw new Error(error.message);
 
+    // Answering proves you are present — clear any anti-AFK flag.
+    const afkCol = uid === match.player1_id ? "player1_afk_since" : "player2_afk_since";
+    const roundCol = uid === match.player1_id ? "player1_afk_round" : "player2_afk_round";
+    await db
+      .from("matches")
+      .update({ [afkCol]: null, [roundCol]: null })
+      .eq("id", match.id)
+      .eq("status", "active");
+
     // Round may now advance (both answered) or the bot may answer.
     const next = await advanceMatch(match);
     if (next.done) await finalizeIfDone(match);
     return { ok: true, isCorrect };
+  });
+
+export const forfeitMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { adminClient, settleMatch } = await import("./game.server");
+    const db = adminClient();
+    const uid = context.userId;
+
+    const { data: match } = await db
+      .from("matches")
+      .select("*")
+      .eq("id", data.matchId)
+      .maybeSingle();
+    if (!match) return { ok: false, reason: "Match not found" };
+    if (match.player1_id !== uid && match.player2_id !== uid)
+      return { ok: false, reason: "Not your match" };
+    if (match.status !== "active") return { ok: false, reason: "Match is already over" };
+
+    const isP1 = match.player1_id === uid;
+    const settled = await settleMatch(match, isP1 ? 0 : 1, uid, "manual");
+    if (!settled) return { ok: false, reason: "Could not update match — try again" };
+    return { ok: true };
+  });
+
+export const confirmActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { adminClient, advanceMatch } = await import("./game.server");
+    const db = adminClient();
+    const uid = context.userId;
+
+    const { data: match } = await db
+      .from("matches")
+      .select("*")
+      .eq("id", data.matchId)
+      .maybeSingle();
+    if (!match) return { ok: false, reason: "Match not found" };
+    if (match.player1_id !== uid && match.player2_id !== uid)
+      return { ok: false, reason: "Not your match" };
+    if (match.status !== "active") return { ok: true };
+
+    // Record the round this confirmation applies to, so the flag can't re-fire
+    // for the same question — the popup must not loop while you're still here.
+    const round = await advanceMatch(match);
+    const afkCol = uid === match.player1_id ? "player1_afk_since" : "player2_afk_since";
+    const roundCol = uid === match.player1_id ? "player1_afk_round" : "player2_afk_round";
+    const { error } = await db
+      .from("matches")
+      .update({ [afkCol]: null, [roundCol]: round.done ? null : round.index })
+      .eq("id", match.id)
+      .eq("status", "active");
+    if (error) return { ok: false, reason: "Could not save confirmation — try again" };
+    return { ok: true };
   });

@@ -418,16 +418,6 @@ function Home() {
           </div>
         </section>
       </main>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-12 font-mono text-[10px] uppercase tracking-widest opacity-40 sm:flex-row sm:items-center sm:justify-between">
-          <div>JEE Ranked // Competitive exam protocol</div>
-          <div>
-            {stats.data?.players ?? 0} ranked players · {stats.data?.duels ?? 0} duels ·{" "}
-            {stats.data?.questions ?? 0} questions
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

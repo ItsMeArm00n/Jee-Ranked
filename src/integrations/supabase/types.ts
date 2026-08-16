@@ -55,6 +55,7 @@ export type Database = {
           finished_at: string | null;
           id: string;
           is_bot_match: boolean;
+          is_ranked: boolean;
           player1_delta: number | null;
           player1_elo_before: number | null;
           player1_id: string;
@@ -64,6 +65,7 @@ export type Database = {
           question_ids: string[];
           started_at: string | null;
           status: string;
+          subject_filter: string | null;
           winner_id: string | null;
         };
         Insert: {
@@ -74,6 +76,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           is_bot_match?: boolean;
+          is_ranked?: boolean;
           player1_delta?: number | null;
           player1_elo_before?: number | null;
           player1_id: string;
@@ -83,6 +86,7 @@ export type Database = {
           question_ids: string[];
           started_at?: string | null;
           status?: string;
+          subject_filter?: string | null;
           winner_id?: string | null;
         };
         Update: {
@@ -93,6 +97,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           is_bot_match?: boolean;
+          is_ranked?: boolean;
           player1_delta?: number | null;
           player1_elo_before?: number | null;
           player1_id?: string;
@@ -102,6 +107,7 @@ export type Database = {
           question_ids?: string[];
           started_at?: string | null;
           status?: string;
+          subject_filter?: string | null;
           winner_id?: string | null;
         };
         Relationships: [];

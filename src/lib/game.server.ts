@@ -5,6 +5,11 @@ export const QUESTIONS_PER_MATCH = 10;
 export const SECONDS_PER_QUESTION = 120;
 export const MATCH_DURATION_SECONDS = QUESTIONS_PER_MATCH * SECONDS_PER_QUESTION;
 
+/** Anti-AFK: after this many seconds without answering the open question, the player gets flagged. */
+export const AFK_FLAG_SECONDS = 0;
+/** Anti-AFK: grace period after being flagged before the match is auto-forfeited. */
+export const AFK_GRACE_SECONDS = 30;
+
 export function adminClient(): SupabaseClient {
   return createClient(process.env["SUPABASE_URL"]!, process.env["SUPABASE_SERVICE_ROLE_KEY"]!, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -66,7 +71,15 @@ type MatchRow = {
   player1_delta: number | null;
   player2_delta: number | null;
   is_bot_match?: boolean;
+  is_ranked?: boolean;
+  subject_filter?: string | null;
   bot_schedule?: BotStep[] | null;
+  forfeiter_id?: string | null;
+  forfeit_reason?: string | null;
+  player1_afk_since?: string | null;
+  player2_afk_since?: string | null;
+  player1_afk_round?: number | null;
+  player2_afk_round?: number | null;
 };
 
 export type BotStep = { index: number; atMs: number; correct: boolean };
@@ -137,7 +150,7 @@ type AnswerRow = { user_id: string; question_index: number; answered_at: string 
  */
 export async function advanceMatch(match: MatchRow): Promise<RoundState> {
   const total = match.question_ids.length;
-  if (match.status !== "active" || !match.player2_id || !match.started_at) {
+  if (match.status !== "active" || !match.started_at) {
     return { index: 0, endsAt: null, done: match.status === "finished" };
   }
 
@@ -150,6 +163,7 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
 
   const p1 = match.player1_id;
   const p2 = match.player2_id;
+  const isSolo = !p2;
   const botId = match.is_bot_match ? p2 : null;
   const schedule = (match.bot_schedule ?? []) as BotStep[];
 
@@ -194,7 +208,19 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
     }
 
     const a1 = at(p1, i);
-    const a2 = at(p2, i);
+
+    if (isSolo) {
+      // Solo: advance immediately when the player answers, no timer pressure.
+      if (a1 !== null) {
+        roundStart = a1;
+        continue;
+      }
+      // Player hasn't answered yet — show the question (no deadline).
+      state = { index: i, endsAt: null, done: false };
+      break;
+    }
+
+    const a2 = p2 ? at(p2, i) : null;
 
     if (a1 !== null && a2 !== null) {
       // Both answered — the next question starts right away, no time carried over.
@@ -205,7 +231,7 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
     if (now >= deadline) {
       // Window closed — anyone who didn't answer loses the question.
       if (a1 === null) push(p1, i, false, deadline);
-      if (a2 === null) push(p2, i, false, deadline);
+      if (a2 === null && p2) push(p2, i, false, deadline);
       roundStart = deadline;
       continue;
     }
@@ -218,8 +244,94 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
   return state;
 }
 
+/**
+ * Persist a decided match: compute ELO deltas from `result1` (1/0.5/0 for
+ * player 1), flip the match to finished, and update both profiles.
+ * Idempotent — if another request already finalized the match it returns the
+ * current row without double-applying ELO.
+ */
+export async function settleMatch(
+  match: MatchRow,
+  result1: number,
+  forfeiterId: string | null = null,
+  forfeitReason: string | null = null,
+): Promise<MatchRow | null> {
+  const db = adminClient();
+  const isSolo = !match.player2_id;
+
+  const { data: profiles } = await db
+    .from("profiles")
+    .select("id, elo, wins, losses, draws, matches_played")
+    .in("id", [match.player1_id, match.player2_id].filter(Boolean));
+  const pr1 = profiles?.find((p) => p.id === match.player1_id);
+  const pr2 = isSolo ? null : profiles?.find((p) => p.id === match.player2_id);
+  if (!pr1) return null;
+  if (!isSolo && !pr2) return null;
+
+  const isRanked = match.is_ranked !== false;
+
+  const d1 = isRanked ? eloDelta(pr1.elo, pr2.elo, result1) : 0;
+  const d2 = isRanked ? eloDelta(pr2.elo, pr1.elo, 1 - result1) : 0;
+
+  const { data: updated, error } = await db
+    .from("matches")
+    .update({
+      status: "finished",
+      finished_at: new Date().toISOString(),
+      winner_id: result1 === 1 ? match.player1_id : result1 === 0 ? match.player2_id : null,
+      player1_elo_before: pr1.elo,
+      player2_elo_before: pr2.elo,
+      player1_delta: d1,
+      player2_delta: d2,
+      forfeiter_id: forfeiterId,
+      forfeit_reason: forfeitReason,
+      player1_afk_since: null,
+      player2_afk_since: null,
+      player1_afk_round: null,
+      player2_afk_round: null,
+    })
+    .eq("id", match.id)
+    .eq("status", "active")
+    .select("*")
+    .maybeSingle();
+
+  // The UPDATE itself failed — surface it so callers don't report success.
+  if (error) return null;
+
+  // Another request already finalized this match — do not double-apply ELO.
+  if (!updated) {
+    const { data: fresh } = await db.from("matches").select("*").eq("id", match.id).single();
+    return fresh as MatchRow;
+  }
+
+  await db
+    .from("profiles")
+    .update({
+      elo: pr1.elo + d1,
+      wins: pr1.wins + (result1 === 1 ? 1 : 0),
+      losses: pr1.losses + (result1 === 0 ? 1 : 0),
+      draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
+      matches_played: pr1.matches_played + 1,
+    })
+    .eq("id", pr1.id);
+  if (pr2) {
+    await db
+      .from("profiles")
+      .update({
+        elo: pr2.elo + d2,
+        wins: pr2.wins + (result1 === 0 ? 1 : 0),
+        losses: pr2.losses + (result1 === 1 ? 1 : 0),
+        draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
+        matches_played: pr2.matches_played + 1,
+      })
+      .eq("id", pr2.id);
+  }
+
+  return updated as MatchRow;
+}
+
 export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
-  if (match.status !== "active" || !match.player2_id) return match;
+  if (match.status !== "active") return match;
   const db = adminClient();
 
   const { data: answers } = await db
@@ -231,6 +343,14 @@ export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
   const total = match.question_ids.length;
   const of = (uid: string) => rows.filter((r) => r.user_id === uid);
   const p1 = of(match.player1_id);
+
+  // Solo: finish when player1 has answered all questions.
+  if (!match.player2_id) {
+    if (p1.length < total) return match;
+    const settled = await settleMatch(match, 1);
+    return settled ?? match;
+  }
+
   const p2 = of(match.player2_id);
   const timeUp = match.ends_at ? new Date(match.ends_at).getTime() <= Date.now() : false;
   const bothDone = p1.length >= total && p2.length >= total;
@@ -250,59 +370,112 @@ export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
     result1 = t1 === t2 ? 0.5 : t1 < t2 ? 1 : 0;
   }
 
-  const { data: profiles } = await db
-    .from("profiles")
-    .select("id, elo, wins, losses, draws, matches_played")
-    .in("id", [match.player1_id, match.player2_id]);
-  const pr1 = profiles?.find((p) => p.id === match.player1_id);
-  const pr2 = profiles?.find((p) => p.id === match.player2_id);
-  if (!pr1 || !pr2) return match;
+  return (await settleMatch(match, result1)) ?? match;
+}
 
-  const d1 = eloDelta(pr1.elo, pr2.elo, result1);
-  const d2 = eloDelta(pr2.elo, pr1.elo, 1 - result1);
+/**
+ * Anti-AFK: detection starts as soon as a player misses a question AND has not
+ * yet answered the current one. The "are you there?" popup appears immediately.
+ * If they don't confirm presence (or answer) within AFK_GRACE_SECONDS the
+ * match is auto-forfeited with them as the forfeiter. Confirming presence
+ * clears the flag for the rest of that round so the popup doesn't loop.
+ */
+export async function enforceAfk(match: MatchRow, round: RoundState): Promise<MatchRow> {
+  if (match.status !== "active" || !match.player2_id) return match;
+  const db = adminClient();
+  const now = Date.now();
 
-  const { data: updated } = await db
-    .from("matches")
-    .update({
-      status: "finished",
-      finished_at: new Date().toISOString(),
-      winner_id: result1 === 1 ? match.player1_id : result1 === 0 ? match.player2_id : null,
-      player1_elo_before: pr1.elo,
-      player2_elo_before: pr2.elo,
-      player1_delta: d1,
-      player2_delta: d2,
-    })
-    .eq("id", match.id)
-    .eq("status", "active")
-    .select("*")
-    .maybeSingle();
+  const clear = { player1_afk_since: null, player2_afk_since: null };
 
-  // Another request already finalized this match — do not double-apply ELO.
-  if (!updated) {
-    const { data: fresh } = await db.from("matches").select("*").eq("id", match.id).single();
-    return fresh as MatchRow;
+  // No question in play, or the very first question — nothing was missed yet.
+  if (round.done || !round.endsAt || round.index === 0) {
+    if (match.player1_afk_since || match.player2_afk_since) {
+      await db
+        .from("matches")
+        .update({ ...clear, player1_afk_round: null, player2_afk_round: null })
+        .eq("id", match.id)
+        .eq("status", "active");
+    }
+    return { ...match, ...clear, player1_afk_round: null, player2_afk_round: null };
   }
 
-  await db
-    .from("profiles")
-    .update({
-      elo: pr1.elo + d1,
-      wins: pr1.wins + (result1 === 1 ? 1 : 0),
-      losses: pr1.losses + (result1 === 0 ? 1 : 0),
-      draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
-      matches_played: pr1.matches_played + 1,
-    })
-    .eq("id", pr1.id);
-  await db
-    .from("profiles")
-    .update({
-      elo: pr2.elo + d2,
-      wins: pr2.wins + (result1 === 0 ? 1 : 0),
-      losses: pr2.losses + (result1 === 1 ? 1 : 0),
-      draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
-      matches_played: pr2.matches_played + 1,
-    })
-    .eq("id", pr2.id);
+  const idx = round.index;
+  const roundStart = new Date(round.endsAt).getTime() - SECONDS_PER_QUESTION * 1000;
+  const { data: answers } = await db
+    .from("match_answers")
+    .select("user_id, question_index, choice")
+    .eq("match_id", match.id);
+  const rows = answers ?? [];
+  // A question only counts as answered when a choice was actually submitted
+  // (timeout rows carry choice = null).
+  const hasChoice = (uid: string, qi: number) =>
+    rows.some((r) => r.user_id === uid && r.question_index === qi && r.choice !== null);
+  const missedTwoInRow = (uid: string) =>
+    idx >= 2 && !hasChoice(uid, idx - 1) && !hasChoice(uid, idx - 2);
 
-  return updated as MatchRow;
+  const evalPlayer = (uid: string, flaggedAt: string | null, flaggedRound: number | null) => {
+    const flaggedMs = flaggedAt ? new Date(flaggedAt).getTime() : null;
+    // Player confirmed presence earlier in this same round — leave them alone.
+    if (flaggedMs === null && flaggedRound === idx) return { afkSince: null, afkRound: idx };
+    // Only players who missed the last two consecutive questions are subject to AFK checks,
+    // and answering the current question proves presence.
+    if (!missedTwoInRow(uid) || hasChoice(uid, idx)) return { afkSince: null, afkRound: null };
+
+    const activeFlag = flaggedMs !== null && flaggedMs >= roundStart ? flaggedMs : null;
+    const elapsed = now - roundStart;
+    if (elapsed < AFK_FLAG_SECONDS * 1000) return { afkSince: activeFlag, afkRound: idx };
+    if (activeFlag === null) return { afkSince: now, afkRound: idx, forfeit: false };
+    return {
+      afkSince: activeFlag,
+      afkRound: idx,
+      forfeit: now - activeFlag >= AFK_GRACE_SECONDS * 1000,
+    };
+  };
+
+  const p1 = evalPlayer(
+    match.player1_id,
+    match.player1_afk_since ?? null,
+    match.player1_afk_round ?? null,
+  );
+  const p2 = evalPlayer(
+    match.player2_id,
+    match.player2_afk_since ?? null,
+    match.player2_afk_round ?? null,
+  );
+
+  if ("forfeit" in p1 && p1.forfeit) {
+    const settled = await settleMatch(match, 0, match.player1_id, "afk");
+    return settled ?? match;
+  }
+  if ("forfeit" in p2 && p2.forfeit) {
+    const settled = await settleMatch(match, 1, match.player2_id, "afk");
+    return settled ?? match;
+  }
+
+  const p1Afk = p1.afkSince !== null ? new Date(p1.afkSince).toISOString() : null;
+  const p2Afk = p2.afkSince !== null ? new Date(p2.afkSince).toISOString() : null;
+  const changed =
+    p1Afk !== match.player1_afk_since ||
+    p2Afk !== match.player2_afk_since ||
+    p1.afkRound !== match.player1_afk_round ||
+    p2.afkRound !== match.player2_afk_round;
+  if (changed) {
+    await db
+      .from("matches")
+      .update({
+        player1_afk_since: p1Afk,
+        player2_afk_since: p2Afk,
+        player1_afk_round: p1.afkRound,
+        player2_afk_round: p2.afkRound,
+      })
+      .eq("id", match.id)
+      .eq("status", "active");
+  }
+  return {
+    ...match,
+    player1_afk_since: p1Afk,
+    player2_afk_since: p2Afk,
+    player1_afk_round: p1.afkRound,
+    player2_afk_round: p2.afkRound,
+  };
 }
