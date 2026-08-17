@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/useSession";
+import { useSfx } from "@/hooks/useSfx";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/auth")({
@@ -27,6 +28,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const { session } = useSession();
+  const { play } = useSfx();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -86,7 +88,8 @@ function AuthPage() {
         </div>
 
         <button
-          onClick={google}
+          onClick={() => { play("click"); google(); }}
+          onMouseEnter={() => play("hover")}
           className="ticker-enter border border-border bg-surface px-6 py-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 [animation-delay:400ms] hover:-translate-y-0.5 hover:border-primary hover:text-primary"
         >
           Continue with Google
@@ -119,6 +122,7 @@ function AuthPage() {
           <button
             type="submit"
             disabled={busy}
+            onMouseEnter={() => play("hover")}
             className="cta-sweep w-full bg-primary py-5 font-display text-2xl uppercase italic tracking-tighter text-primary-foreground disabled:opacity-50"
           >
             {busy ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
@@ -126,14 +130,15 @@ function AuthPage() {
         </form>
 
         <button
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          onClick={() => { play("click"); setMode(mode === "signin" ? "signup" : "signin"); }}
+          onMouseEnter={() => play("hover")}
           className="link-underline self-start font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
         >
           {mode === "signin" ? "No account? Register" : "Already ranked? Sign in"}
         </button>
 
 
-        <Link to="/" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+        <Link to="/" onMouseEnter={() => play("hover")} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
           ← Back to lobby
         </Link>
       </main>

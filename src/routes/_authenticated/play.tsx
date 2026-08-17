@@ -232,7 +232,7 @@ function PlayPage() {
       { value: "Mathematics", label: "Mathematics" },
     ];
     const modes: { value: UnrankedPlayMode; label: string; desc: string }[] = [
-      { value: "solo", label: "Solo", desc: "Practice vs a bot" },
+      { value: "solo", label: "Solo", desc: "Practice Solo" },
       { value: "random", label: "Random", desc: "Play vs a stranger" },
     ];
 
@@ -263,6 +263,7 @@ function PlayPage() {
                   onClick={() => {
                     play("select");
                     setSubject(s.value);
+                    if (s.value !== "All" && playMode === "random") setPlayMode("solo");
                   }}
                   onMouseEnter={() => play("hover")}
                   className={`border p-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
@@ -283,30 +284,37 @@ function PlayPage() {
               Opponent
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {modes.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => {
-                    play("select");
-                    setPlayMode(m.value);
-                  }}
-                  onMouseEnter={() => play("hover")}
-                  className={`border p-4 text-left transition-all duration-300 ${
-                    playMode === m.value
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div
-                    className={`font-mono text-sm uppercase tracking-widest ${playMode === m.value ? "text-primary" : ""}`}
+              {modes.map((m) => {
+                const disabled = subject !== "All" && m.value === "random";
+                return (
+                  <button
+                    key={m.value}
+                    onClick={() => {
+                      if (disabled) return;
+                      play("select");
+                      setPlayMode(m.value);
+                    }}
+                    onMouseEnter={() => play("hover")}
+                    disabled={disabled}
+                    className={`border p-4 text-left transition-all duration-300 ${
+                      disabled
+                        ? "cursor-not-allowed border-border/40 opacity-40"
+                        : playMode === m.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                    }`}
                   >
-                    {m.label}
-                  </div>
-                  <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {m.desc}
-                  </div>
-                </button>
-              ))}
+                    <div
+                      className={`font-mono text-sm uppercase tracking-widest ${playMode === m.value && !disabled ? "text-primary" : ""}`}
+                    >
+                      {m.label}
+                    </div>
+                    <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {disabled ? "Solo only for single subject" : m.desc}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -363,49 +371,64 @@ function PlayPage() {
   }
 
   // ── Searching / matchmaking screen (ranked & unranked random) ──
+  const isSoloUnranked = gameMode === "unranked" && playMode === "solo";
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
       <main className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center gap-10 px-6 py-20 text-center">
         <div className="animate-enter">
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            {gameMode === "ranked" ? "Ranked" : "Unranked"} matchmaking
+            {isSoloUnranked
+              ? "Solo practice"
+              : `${gameMode === "ranked" ? "Ranked" : "Unranked"} matchmaking`}
           </div>
           <h1 className="mask-reveal mt-4 font-display text-6xl uppercase italic leading-none tracking-tighter sm:text-7xl">
             <span>
-              Searching for <span className="text-primary">an opponent</span>
+              {isSoloUnranked ? (
+                <>
+                  Starting your <span className="text-primary">practice</span>
+                </>
+              ) : (
+                <>
+                  Searching for <span className="text-primary">an opponent</span>
+                </>
+              )}
             </span>
           </h1>
         </div>
 
-        <div className="radar flex size-24 items-center justify-center rounded-full border border-border">
-          <div className="size-3 rotate-45 bg-primary" />
-        </div>
+        {!isSoloUnranked && (
+          <div className="radar flex size-24 items-center justify-center rounded-full border border-border">
+            <div className="size-3 rotate-45 bg-primary" />
+          </div>
+        )}
 
         <div className="wipe-enter flex w-full max-w-md items-center justify-between border-y border-border bg-surface/40 px-6 py-5 font-mono text-sm [animation-delay:200ms]">
           <span className="text-muted-foreground uppercase">Your rating</span>
           <span className="text-primary">{profile.data ? `${profile.data.elo} ELO` : "—"}</span>
         </div>
 
-        <div className="font-mono text-4xl tabular-nums timer-pulse">
-          {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
-          {String(elapsed % 60).padStart(2, "0")}
-        </div>
+        {!isSoloUnranked && (
+          <div className="font-mono text-4xl tabular-nums timer-pulse">
+            {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
+            {String(elapsed % 60).padStart(2, "0")}
+          </div>
+        )}
 
         <p className="ticker-enter max-w-sm font-mono text-xs uppercase tracking-widest text-muted-foreground [animation-delay:350ms]">
-          {gameMode === "ranked"
-            ? searching
-              ? elapsed >= 25
-                ? "No human in the arena — dropping in a ranked bot opponent…"
-                : "You will be paired with the next ranked player who queues. 10 questions, 2 shared minutes on each."
-              : "Matchmaking unavailable"
-            : searching
-              ? elapsed >= 25
-                ? "No human found — dropping in a practice bot…"
-                : playMode === "random"
-                  ? `Searching for a random opponent · ${subject === "All" ? "All subjects" : subject}`
-                  : "Starting practice match…"
-              : "Matchmaking unavailable"}
+          {isSoloUnranked
+            ? "Loading your match…"
+            : gameMode === "ranked"
+              ? searching
+                ? elapsed >= 25
+                  ? "No human in the arena — dropping in a ranked bot opponent…"
+                  : "You will be paired with the next ranked player who queues. 10 questions, 2 shared minutes on each."
+                : "Matchmaking unavailable"
+              : searching
+                ? elapsed >= 25
+                  ? "No human found — dropping in a practice bot…"
+                  : `Searching for a random opponent · ${subject === "All" ? "All subjects" : subject}`
+                : "Matchmaking unavailable"}
         </p>
 
         <button
@@ -414,7 +437,7 @@ function PlayPage() {
           onFocus={() => play("hover")}
           className="border border-border px-8 py-3 font-mono text-sm uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
         >
-          Cancel search
+          {isSoloUnranked ? "Cancel" : "Cancel search"}
         </button>
       </main>
     </div>

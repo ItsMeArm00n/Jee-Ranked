@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/play'
@@ -31,6 +32,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -69,6 +75,7 @@ const AuthenticatedReplayMatchIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/play': typeof AuthenticatedPlayRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/play': typeof AuthenticatedPlayRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_authenticated/play': typeof AuthenticatedPlayRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/leaderboard'
     | '/privacy'
     | '/terms'
     | '/play'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/leaderboard'
     | '/privacy'
     | '/terms'
     | '/play'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/leaderboard'
     | '/privacy'
     | '/terms'
     | '/_authenticated/play'
@@ -136,6 +148,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
 }
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -229,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  LeaderboardRoute: LeaderboardRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
 }

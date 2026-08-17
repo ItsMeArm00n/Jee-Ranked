@@ -52,7 +52,7 @@ function audio(): AudioContext | null {
   if (!ctx) {
     ctx = new Ctor();
     master = ctx.createGain();
-    master.gain.value = 0.9;
+    master.gain.value = 3.0;
     master.connect(ctx.destination);
   }
   if (ctx.state === "suspended") void ctx.resume();

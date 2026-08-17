@@ -34,6 +34,20 @@ export function rankTitle(elo: number) {
   return "ROOKIE";
 }
 
+export const CORRECT_MARKS = 4;
+export const WRONG_MARKS = -1;
+export const UNANSWERED_MARKS = 0;
+
+/** JEE-style marks: +4 correct, −1 wrong, 0 unanswered. */
+export function jeeMarks(
+  answers: { is_correct: boolean; choice: string | null }[],
+): number {
+  return answers.reduce((sum, a) => {
+    if (a.choice === null) return sum + UNANSWERED_MARKS;
+    return sum + (a.is_correct ? CORRECT_MARKS : WRONG_MARKS);
+  }, 0);
+}
+
 export async function ensureProfileRow(userId: string, email?: string | null) {
   const db = adminClient();
   const { data: existing } = await db
@@ -105,7 +119,7 @@ export async function attachBot(matchId: string, userId: string): Promise<MatchR
 
   const accuracy = Math.min(0.9, Math.max(0.35, 0.35 + (bot.elo - 1000) / 2000));
   const total: number = match.question_ids.length;
-  const windowMs = SECONDS_PER_QUESTION * 1000;
+  const windowMs = (match.duration_seconds / total) * 1000;
   const schedule: BotStep[] = [];
   for (let i = 0; i < total; i++) {
     // atMs is the bot's delay INSIDE that question's own 2-minute round.
@@ -172,7 +186,7 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
     return row ? new Date(row.answered_at).getTime() : null;
   };
 
-  const windowMs = SECONDS_PER_QUESTION * 1000;
+  const windowMs = (match.duration_seconds / total) * 1000;
   const now = Date.now();
   const inserts: {
     match_id: string;
@@ -210,13 +224,20 @@ export async function advanceMatch(match: MatchRow): Promise<RoundState> {
     const a1 = at(p1, i);
 
     if (isSolo) {
-      // Solo: advance immediately when the player answers, no timer pressure.
+      const deadline = roundStart + windowMs;
+      // Advance immediately when the player answers.
       if (a1 !== null) {
         roundStart = a1;
         continue;
       }
-      // Player hasn't answered yet — show the question (no deadline).
-      state = { index: i, endsAt: null, done: false };
+      // Time's up — mark as missed and advance.
+      if (now >= deadline) {
+        push(p1, i, false, deadline);
+        roundStart = deadline;
+        continue;
+      }
+      // Player hasn't answered yet — show the question with deadline.
+      state = { index: i, endsAt: new Date(deadline).toISOString(), done: false };
       break;
     }
 
@@ -270,8 +291,8 @@ export async function settleMatch(
 
   const isRanked = match.is_ranked !== false;
 
-  const d1 = isRanked ? eloDelta(pr1.elo, pr2.elo, result1) : 0;
-  const d2 = isRanked ? eloDelta(pr2.elo, pr1.elo, 1 - result1) : 0;
+  const d1 = isRanked && pr2 ? eloDelta(pr1.elo, pr2.elo, result1) : 0;
+  const d2 = isRanked && pr2 ? eloDelta(pr2.elo, pr1.elo, 1 - result1) : 0;
 
   const { data: updated, error } = await db
     .from("matches")
@@ -280,7 +301,7 @@ export async function settleMatch(
       finished_at: new Date().toISOString(),
       winner_id: result1 === 1 ? match.player1_id : result1 === 0 ? match.player2_id : null,
       player1_elo_before: pr1.elo,
-      player2_elo_before: pr2.elo,
+      player2_elo_before: pr2?.elo ?? null,
       player1_delta: d1,
       player2_delta: d2,
       forfeiter_id: forfeiterId,
@@ -304,27 +325,29 @@ export async function settleMatch(
     return fresh as MatchRow;
   }
 
-  await db
-    .from("profiles")
-    .update({
-      elo: pr1.elo + d1,
-      wins: pr1.wins + (result1 === 1 ? 1 : 0),
-      losses: pr1.losses + (result1 === 0 ? 1 : 0),
-      draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
-      matches_played: pr1.matches_played + 1,
-    })
-    .eq("id", pr1.id);
-  if (pr2) {
+  if (isRanked) {
     await db
       .from("profiles")
       .update({
-        elo: pr2.elo + d2,
-        wins: pr2.wins + (result1 === 0 ? 1 : 0),
-        losses: pr2.losses + (result1 === 1 ? 1 : 0),
-        draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
-        matches_played: pr2.matches_played + 1,
+        elo: pr1.elo + d1,
+        wins: pr1.wins + (result1 === 1 ? 1 : 0),
+        losses: pr1.losses + (result1 === 0 ? 1 : 0),
+        draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
+        matches_played: pr1.matches_played + 1,
       })
-      .eq("id", pr2.id);
+      .eq("id", pr1.id);
+    if (pr2) {
+      await db
+        .from("profiles")
+        .update({
+          elo: pr2.elo + d2,
+          wins: pr2.wins + (result1 === 0 ? 1 : 0),
+          losses: pr2.losses + (result1 === 1 ? 1 : 0),
+          draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
+          matches_played: pr2.matches_played + 1,
+        })
+        .eq("id", pr2.id);
+    }
   }
 
   return updated as MatchRow;
@@ -336,7 +359,7 @@ export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
 
   const { data: answers } = await db
     .from("match_answers")
-    .select("user_id, is_correct, answered_at")
+    .select("user_id, choice, is_correct, answered_at")
     .eq("match_id", match.id);
   const rows = answers ?? [];
 
@@ -356,14 +379,14 @@ export async function finalizeIfDone(match: MatchRow): Promise<MatchRow> {
   const bothDone = p1.length >= total && p2.length >= total;
   if (!timeUp && !bothDone) return match;
 
-  const s1 = p1.filter((r) => r.is_correct).length;
-  const s2 = p2.filter((r) => r.is_correct).length;
+  const m1 = jeeMarks(p1);
+  const m2 = jeeMarks(p2);
   const last = (arr: typeof rows) =>
     arr.length ? Math.max(...arr.map((r) => new Date(r.answered_at).getTime())) : Infinity;
 
   let result1: number; // 1 win, 0.5 draw, 0 loss
-  if (s1 > s2) result1 = 1;
-  else if (s2 > s1) result1 = 0;
+  if (m1 > m2) result1 = 1;
+  else if (m2 > m1) result1 = 0;
   else {
     const t1 = p1.length >= total ? last(p1) : Infinity;
     const t2 = p2.length >= total ? last(p2) : Infinity;
@@ -400,7 +423,8 @@ export async function enforceAfk(match: MatchRow, round: RoundState): Promise<Ma
   }
 
   const idx = round.index;
-  const roundStart = new Date(round.endsAt).getTime() - SECONDS_PER_QUESTION * 1000;
+  const secondsPerQ = match.duration_seconds / match.question_ids.length;
+  const roundStart = new Date(round.endsAt).getTime() - secondsPerQ * 1000;
   const { data: answers } = await db
     .from("match_answers")
     .select("user_id, question_index, choice")
@@ -415,8 +439,12 @@ export async function enforceAfk(match: MatchRow, round: RoundState): Promise<Ma
 
   const evalPlayer = (uid: string, flaggedAt: string | null, flaggedRound: number | null) => {
     const flaggedMs = flaggedAt ? new Date(flaggedAt).getTime() : null;
-    // Player confirmed presence earlier in this same round — leave them alone.
-    if (flaggedMs === null && flaggedRound === idx) return { afkSince: null, afkRound: idx };
+    // Player confirmed presence (flag cleared) — don't re-flag until they answer
+    // or miss a question in a round well past the confirmation. The >= idx-1 check
+    // absorbs the common race where the round advances by one between confirmActive
+    // and the next enforceAfk poll.
+    if (flaggedMs === null && flaggedRound !== null && flaggedRound >= idx - 1)
+      return { afkSince: null, afkRound: flaggedRound };
     // Only players who missed the last two consecutive questions are subject to AFK checks,
     // and answering the current question proves presence.
     if (!missedTwoInRow(uid) || hasChoice(uid, idx)) return { afkSince: null, afkRound: null };
@@ -432,23 +460,28 @@ export async function enforceAfk(match: MatchRow, round: RoundState): Promise<Ma
     };
   };
 
+  // In bot matches, only evaluate the human player — bots answer via schedule
+  // with choice=null which would falsely trigger missedTwoInRow.
+  const isBotMatch = !!match.is_bot_match;
   const p1 = evalPlayer(
     match.player1_id,
     match.player1_afk_since ?? null,
     match.player1_afk_round ?? null,
   );
-  const p2 = evalPlayer(
-    match.player2_id,
-    match.player2_afk_since ?? null,
-    match.player2_afk_round ?? null,
-  );
+  const p2 = isBotMatch
+    ? { afkSince: null as string | null, afkRound: null as number | null }
+    : evalPlayer(
+        match.player2_id!,
+        match.player2_afk_since ?? null,
+        match.player2_afk_round ?? null,
+      );
 
   if ("forfeit" in p1 && p1.forfeit) {
     const settled = await settleMatch(match, 0, match.player1_id, "afk");
     return settled ?? match;
   }
   if ("forfeit" in p2 && p2.forfeit) {
-    const settled = await settleMatch(match, 1, match.player2_id, "afk");
+    const settled = await settleMatch(match, 1, match.player2_id!, "afk");
     return settled ?? match;
   }
 

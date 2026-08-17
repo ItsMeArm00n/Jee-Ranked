@@ -15,54 +15,136 @@ export function SiteFooter() {
   };
 
   return (
-    <footer className="border-t border-border bg-surface/30">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
-          {/* Brand */}
-          <div className="text-center md:text-left">
+    <footer className="relative border-t border-border bg-surface/30">
+      {/* Decorative top accent */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
+      <div className="mx-auto max-w-7xl px-6 py-16">
+        {/* Main grid */}
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-8">
+          {/* Brand column */}
+          <div className="space-y-5 md:col-span-5">
             <Link
               to="/"
               {...sfx}
-              className="font-display text-2xl italic tracking-tighter transition-transform duration-300 hover:-skew-x-6"
+              className="inline-block font-display text-3xl italic tracking-tighter transition-transform duration-300 hover:-skew-x-6"
             >
               JEE <span className="text-primary">RANKED</span>
             </Link>
-            <p className="mt-2 max-w-xs font-mono text-xs uppercase tracking-widest text-muted-foreground">
-              1v1 JEE question duels with ELO ranking.
+            <p className="max-w-sm font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
+              1v1 JEE question duels with ELO ranking. Same paper, same clock,
+              most correct answers takes the rating.
             </p>
+
+            {/* Live stats */}
+            <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-border/60 pt-5">
+              {[
+                { label: "Players", value: stats.data?.players ?? 0 },
+                { label: "Duels", value: stats.data?.duels ?? 0 },
+                { label: "Questions", value: stats.data?.questions ?? 0 },
+              ].map((s) => (
+                <div key={s.label} className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl tabular-nums text-primary">
+                    {s.value.toLocaleString()}
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {s.label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Links */}
-          <div className="flex gap-12 font-mono text-xs uppercase tracking-widest">
-            <div className="flex flex-col gap-3">
-              <span className="text-muted-foreground">Legal</span>
-              <Link to="/privacy" {...sfx} className="transition-colors hover:text-primary">
-                Privacy Policy
-              </Link>
-              <Link to="/terms" {...sfx} className="transition-colors hover:text-primary">
-                Terms & Conditions
-              </Link>
+          {/* Navigation columns */}
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7 md:pl-8">
+            <div className="space-y-4">
+              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Play
+              </span>
+              <ul className="space-y-2.5">
+                <li>
+                  <Link
+                    to="/play"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Find a Duel
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/leaderboard"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Leaderboard
+                  </Link>
+                </li>
+              </ul>
             </div>
-            <div className="flex flex-col gap-3">
-              <span className="text-muted-foreground">Play</span>
-              <Link to="/play" {...sfx} className="transition-colors hover:text-primary">
-                Find a Duel
-              </Link>
-              <Link to="/leaderboard" {...sfx} className="transition-colors hover:text-primary">
-                Leaderboard
-              </Link>
+
+            <div className="space-y-4">
+              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Account
+              </span>
+              <ul className="space-y-2.5">
+                <li>
+                  <Link
+                    to="/profile"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Profile
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/auth"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Sign In
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Legal
+              </span>
+              <ul className="space-y-2.5">
+                <li>
+                  <Link
+                    to="/privacy"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/terms"
+                    {...sfx}
+                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  >
+                    Terms & Conditions
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Stats line */}
-        <div className="mt-10 border-t border-border pt-6 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          JEE Ranked // Competitive exam protocol — {stats.data?.players ?? 0} ranked players ·{" "}
-          {stats.data?.duels ?? 0} duels · {stats.data?.questions ?? 0} questions
-        </div>
-
-        <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          &copy; {new Date().getFullYear()} JEE Ranked. All rights reserved.
+        {/* Bottom bar */}
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-7 sm:flex-row">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+            &copy; {new Date().getFullYear()} JEE Ranked. All rights reserved.
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/40">
+            Competitive exam protocol
+          </span>
         </div>
       </div>
     </footer>

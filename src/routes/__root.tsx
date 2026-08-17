@@ -7,12 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SplashScreen } from "@/components/SplashScreen";
+import { BetaNotice, hasSeenBetaNotice } from "@/components/BetaNotice";
+import { NavigationLoader } from "@/components/NavigationLoader";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -145,6 +148,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const [showSplash, setShowSplash] = useState(true);
+  const [showBetaNotice, setShowBetaNotice] = useState(false);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -157,10 +162,21 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {showSplash && (
+        <SplashScreen
+          onDone={() => {
+            setShowSplash(false);
+            if (!hasSeenBetaNotice()) setShowBetaNotice(true);
+          }}
+        />
+      )}
+      {showBetaNotice && <BetaNotice onDismiss={() => setShowBetaNotice(false)} />}
+      <NavigationLoader />
       <div className="flex min-h-screen flex-col">
         <div className="flex-1">
-          <Outlet />
+          <div className="page-enter">
+            <Outlet />
+          </div>
         </div>
         <SiteFooter />
       </div>

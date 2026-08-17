@@ -37,10 +37,11 @@ function MatchPage() {
   const [showResult, setShowResult] = useState(false);
   const lastResultIdx = useRef<number | null>(null);
 
-  const { data, refetch, isLoading } = useQuery({
+  const { data, refetch, isLoading, isError } = useQuery({
     queryKey: ["match", matchId],
     queryFn: () => state({ data: { matchId } }),
     refetchInterval: (q) => (q.state.data?.status === "finished" ? false : 1500),
+    retry: 3,
   });
 
   useEffect(() => {
@@ -54,7 +55,8 @@ function MatchPage() {
     setShowResult(true);
   }, [data?.lastResult, data?.status]);
   useEffect(() => {
-    if (!showResult) return;
+    if (!showResult || !data) return;
+    play(data.lastResult?.mine.correct ? "correct" : "wrong");
     const t = setTimeout(() => setShowResult(false), 4000);
     return () => clearTimeout(t);
   }, [showResult]);
@@ -104,6 +106,10 @@ function MatchPage() {
     if (data?.status !== "finished" || !data.result) return;
     if (endedFor.current === matchId) return;
     endedFor.current = matchId;
+    if (data.isSolo) {
+      play("victory");
+      return;
+    }
     play(data.result.outcome === "loss" ? "defeat" : "victory");
     const delta = data.result.delta;
     const t = setTimeout(() => play(delta >= 0 ? "elo_up" : "elo_down"), 900);
@@ -134,7 +140,7 @@ function MatchPage() {
   }
 
   async function confirmAnswer() {
-    if (!selectedChoice || !data?.question) return;
+    if (!selectedChoice || !data?.question || pending) return;
     setPending(selectedChoice);
     try {
       const res = await answer({
@@ -156,9 +162,10 @@ function MatchPage() {
       }
       setSelectedChoice(null);
       await refetch();
-    } catch {
+    } catch (e: unknown) {
       play("error");
-      toast.error("Could not submit answer");
+      const msg = e instanceof Error ? e.message : "Could not submit answer";
+      toast.error(msg);
     } finally {
       setPending(null);
     }
@@ -195,9 +202,23 @@ function MatchPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <SiteHeader />
-        <div className="px-6 py-32 text-center font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          Loading duel…
-        </div>
+        {isError ? (
+          <div className="px-6 py-32 text-center">
+            <div className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Could not load this match
+            </div>
+            <Link
+              to="/play"
+              className="cta-sweep mt-6 inline-block border border-primary bg-primary/10 px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary transition-all hover:bg-primary/20"
+            >
+              Back to Play
+            </Link>
+          </div>
+        ) : (
+          <div className="px-6 py-32 text-center font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            Loading duel…
+          </div>
+        )}
       </div>
     );
   }
@@ -236,7 +257,7 @@ function MatchPage() {
               </div>
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                 {data.question
-                  ? `Q${data.question.index + 1} / ${data.total} · 2 min shared`
+                  ? `Q${data.question.index + 1} / ${data.total} · ${clock(data.secondsPerQuestion)} shared`
                   : "Shared timer"}
               </div>
             </div>
@@ -244,11 +265,17 @@ function MatchPage() {
 
           {data.isSolo && (
             <div className="flex flex-col items-center gap-1">
-              <div className="font-mono text-4xl font-bold tabular-nums">
-                {data.question ? `Q${data.question.index + 1} / ${data.total}` : "—"}
+              <div
+                className={`font-mono text-4xl font-bold tabular-nums transition-transform duration-300 ${
+                  remaining < 30 ? "timer-pulse scale-110" : ""
+                }`}
+              >
+                {clock(remaining)}
               </div>
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Solo practice
+                {data.question
+                  ? `Q${data.question.index + 1} / ${data.total} · ${clock(data.secondsPerQuestion)} per question`
+                  : "Solo practice"}
               </div>
             </div>
           )}
@@ -276,16 +303,18 @@ function MatchPage() {
             <div className="absolute top-0 right-0 h-full w-64 -skew-x-12 translate-x-32 bg-primary/5" />
             <div className="relative z-10">
               <div className="impact-enter font-display text-7xl uppercase italic tracking-tighter text-primary sm:text-8xl">
-                {data.result.outcome === "win"
-                  ? "Victory"
-                  : data.result.outcome === "loss"
-                    ? "Defeat"
-                    : "Draw"}
+                {data.isSolo
+                  ? "Complete"
+                  : data.result.outcome === "win"
+                    ? "Victory"
+                    : data.result.outcome === "loss"
+                      ? "Defeat"
+                      : "Draw"}
               </div>
               <div className="ticker-enter mt-4 font-mono text-xs uppercase tracking-widest text-muted-foreground [animation-delay:400ms]">
                 {data.isSolo
-                  ? `${data.me.username} scored ${data.result.myScore} / ${data.total}`
-                  : `${data.me.username} ${data.result.myScore} — ${data.result.oppScore} ${data.opponent?.username ?? "—"}`}
+                  ? `${data.me.username} scored ${data.result.myMarks} marks (${data.result.myScore}/${data.total} correct)`
+                  : `${data.me.username} ${data.result.myMarks} — ${data.result.oppMarks} ${data.opponent?.username ?? "—"} marks`}
               </div>
               {data.forfeitedByMe || data.forfeitReason ? (
                 <div className="ticker-enter mt-2 font-mono text-[10px] uppercase tracking-widest text-destructive [animation-delay:460ms]">
@@ -337,13 +366,12 @@ function MatchPage() {
                 >
                   Queue again
                 </button>
-                <Link
-                  to="/replay/$matchId"
-                  params={{ matchId }}
-                  onMouseEnter={() => play("hover")}
-                  onClick={() => play("click")}
-                  className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
-                >
+              <Link
+                to="/replay/$matchId"
+                params={{ matchId }}
+                onMouseEnter={() => play("hover")}
+                className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
+              >
                   Watch replay
                 </Link>
                 <Link
@@ -402,7 +430,8 @@ function MatchPage() {
                       onClick={confirmAnswer}
                       onMouseEnter={() => play("hover")}
                       onFocus={() => play("hover")}
-                      className="cta-sweep mt-4 w-full bg-primary py-4 font-mono text-sm uppercase tracking-widest text-primary-foreground transition-all"
+                      disabled={pending !== null}
+                      className="cta-sweep mt-4 w-full bg-primary py-4 font-mono text-sm uppercase tracking-widest text-primary-foreground transition-all disabled:opacity-50"
                     >
                       Confirm {selectedChoice}
                     </button>
@@ -461,13 +490,16 @@ function MatchPage() {
               )}
 
               <div className="border-t border-border pt-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Correct so far:{" "}
+                Marks:{" "}
                 <span key={data.me.correct} className="impact-enter inline-block text-primary">
-                  {data.me.correct}
+                  {data.me.marks}
+                </span>
+                <span className="ml-2 text-muted-foreground/60">
+                  ({data.me.correct}/{data.total} correct)
                 </span>
               </div>
 
-              {data.status === "active" ? (
+              {data.status === "active" && !data.isSolo ? (
                 <button
                   onMouseEnter={() => play("hover")}
                   onFocus={() => play("hover")}
@@ -483,56 +515,185 @@ function MatchPage() {
             </div>
           </div>
         )}
+
+        {data.status === "finished" && data.questionReview && data.questionReview.length > 0 ? (
+          <div className="space-y-6 border-t border-border pt-10">
+            <h2 className="font-display text-3xl uppercase italic tracking-tighter">
+              Question review
+            </h2>
+            <div className="space-y-6">
+              {data.questionReview.map((qr) => (
+                <div
+                  key={qr.index}
+                  className="border border-border bg-surface/30 p-6"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <span className="font-mono text-xs uppercase text-primary">
+                        {qr.subject} / {qr.topic} / Q{qr.index + 1}
+                      </span>
+                      <p className="text-sm font-medium leading-relaxed">{qr.stem}</p>
+                    </div>
+                    <div className="shrink-0 space-y-1 text-right">
+                      <div className="border border-success bg-success/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-success">
+                        Correct: {qr.correctOption}
+                      </div>
+                      <div className="font-mono text-[10px] uppercase tracking-widest">
+                        <span className={qr.myCorrect ? "text-success" : qr.myMissed ? "text-muted-foreground" : "text-destructive"}>
+                          {data.me.username}: {qr.myMissed ? "0" : qr.myCorrect ? "+4" : "−1"}
+                        </span>
+                        {!data.isSolo ? (
+                          <>
+                            <span className="text-muted-foreground/40"> / </span>
+                            <span className={qr.oppCorrect ? "text-success" : qr.oppMissed ? "text-muted-foreground" : "text-destructive"}>
+                              {data.opponent?.username ?? "Opp"}: {qr.oppMissed ? "0" : qr.oppCorrect ? "+4" : "−1"}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {qr.options.map((o) => {
+                      const isCorrect = o.key === qr.correctOption;
+                      const isMine = o.key === qr.myChoice;
+                      const isTheirs = !data.isSolo && o.key === qr.oppChoice;
+                      return (
+                        <div
+                          key={o.key}
+                          className={`relative border p-3 font-mono text-xs transition-colors ${
+                            isCorrect
+                              ? "border-success bg-success/10 text-success"
+                              : isMine
+                                ? "border-destructive bg-destructive/5 text-destructive"
+                                : isTheirs
+                                  ? "border-foreground/40 bg-foreground/5 text-foreground/70"
+                                  : "border-border text-muted-foreground"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="mr-2 font-bold">{o.key}.</span>
+                              {o.text}
+                            </div>
+                            {isCorrect ? (
+                              <span className="shrink-0 rounded bg-success/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-success">
+                                correct
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {isMine && !qr.myMissed ? (
+                              <span className="rounded bg-destructive/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-destructive">
+                                {data.me.username}
+                              </span>
+                            ) : null}
+                            {isTheirs && !qr.oppMissed ? (
+                              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/60">
+                                {data.opponent?.username ?? "opponent"}
+                              </span>
+                            ) : null}
+                            {isMine && qr.myMissed ? (
+                              <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-destructive">
+                                {data.me.username} — no answer
+                              </span>
+                            ) : null}
+                            {isTheirs && qr.oppMissed ? (
+                              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/60">
+                                {data.opponent?.username ?? "opponent"} — no answer
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </main>
 
       {showResult && data.lastResult ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
-          <div className="animate-enter w-full max-w-md border border-border bg-surface p-8">
+          <div className="animate-enter w-full max-w-lg border border-border bg-surface p-8">
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Round result · Q{data.lastResult.index + 1}
             </div>
-            <div className="mt-6 space-y-4">
-              <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
-                <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  You
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-lg">
-                    {data.lastResult.mine.choice ?? "No answer"}
-                  </span>
-                  <span
-                    className={`font-mono text-xs font-bold uppercase tracking-widest ${
-                      data.lastResult.mine.correct ? "text-success" : "text-destructive"
+
+            {data.lastResult.stem ? (
+              <p className="mt-4 text-sm leading-relaxed">{data.lastResult.stem}</p>
+            ) : null}
+
+            <div className="mt-6 space-y-2">
+              {data.lastResult.options.map((o) => {
+                const isCorrect = o.key === data.lastResult!.correctOption;
+                const isMine = o.key === data.lastResult!.mine.choice;
+                const isTheirs = data.lastResult!.theirs
+                  ? o.key === data.lastResult!.theirs.choice
+                  : false;
+                return (
+                  <div
+                    key={o.key}
+                    className={`border p-3 font-mono text-xs transition-colors ${
+                      isCorrect
+                        ? "border-success bg-success/10 text-success"
+                        : isMine && !isCorrect
+                          ? "border-destructive bg-destructive/10 text-destructive"
+                          : "border-border text-muted-foreground"
                     }`}
                   >
-                    {data.lastResult.mine.correct ? "Right" : "Wrong"}
-                  </span>
-                </div>
+                    <span className="mr-2 font-bold">{o.key}.</span>
+                    {o.text}
+                    {isMine && !data.lastResult!.mine.missed ? (
+                      <span className="ml-2 text-[10px] uppercase">(your pick)</span>
+                    ) : null}
+                    {isTheirs && !data.lastResult!.theirs!.missed ? (
+                      <span className="ml-2 text-[10px] uppercase">
+                        ({data.opponent?.username ?? "opponent"})
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+              <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest">
+                <span className="text-muted-foreground">You</span>
+                <span
+                  className={`font-bold ${
+                    data.lastResult.mine.correct ? "text-success" : "text-destructive"
+                  }`}
+                >
+                  {data.lastResult.mine.missed
+                    ? "No answer"
+                    : data.lastResult.mine.correct
+                      ? "Right"
+                      : "Wrong"}
+                </span>
               </div>
               {data.lastResult.theirs ? (
-                <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
-                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest">
+                  <span className="text-muted-foreground">
                     {data.opponent?.username ?? "Opponent"}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-lg">
-                      {data.lastResult.theirs.choice ?? "No answer"}
-                    </span>
-                    <span
-                      className={`font-mono text-xs font-bold uppercase tracking-widest ${
-                        data.lastResult.theirs.correct ? "text-success" : "text-destructive"
-                      }`}
-                    >
-                      {data.lastResult.theirs.correct ? "Right" : "Wrong"}
-                    </span>
-                  </div>
+                  </span>
+                  <span
+                    className={`font-bold ${
+                      data.lastResult.theirs.correct ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    {data.lastResult.theirs.missed
+                      ? "No answer"
+                      : data.lastResult.theirs.correct
+                        ? "Right"
+                        : "Wrong"}
+                  </span>
                 </div>
               ) : null}
-              <div className="pt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                Correct answer:{" "}
-                <span className="text-primary">{data.lastResult.correctOption}</span>
-              </div>
             </div>
+
             <button
               onClick={() => setShowResult(false)}
               className="cta-sweep mt-8 w-full bg-primary py-3 font-mono text-xs uppercase tracking-widest text-primary-foreground"

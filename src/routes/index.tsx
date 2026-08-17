@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
 import { useSession } from "@/hooks/useSession";
+import { useSfx } from "@/hooks/useSfx";
 import { getGlobalStats, getLeaderboard, getMyProfile } from "@/lib/game.functions";
 
 export const Route = createFileRoute("/")({
@@ -93,6 +94,7 @@ const FAQ = [
 
 function Home() {
   const { session } = useSession();
+  const { play } = useSfx();
   const profileFn = useServerFn(getMyProfile);
   const leaderboard = useQuery({ queryKey: ["leaderboard"], queryFn: () => getLeaderboard() });
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => getGlobalStats() });
@@ -146,12 +148,16 @@ function Home() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <Link
                 to={session ? "/play" : "/auth"}
+                onMouseEnter={() => play("hover")}
+                onFocus={() => play("hover")}
                 className="cta-sweep animate-enter block bg-primary px-12 py-6 text-center font-display text-3xl uppercase italic tracking-tighter text-primary-foreground [animation-delay:120ms]"
               >
                 Find Opponent
               </Link>
               <a
                 href="#how"
+                onMouseEnter={() => play("hover")}
+                onFocus={() => play("hover")}
                 className="animate-enter border border-border px-8 py-6 text-center font-mono text-xs uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary [animation-delay:200ms]"
               >
                 How the arena works
@@ -235,9 +241,13 @@ function Home() {
               <h2 className="font-display text-3xl uppercase italic tracking-tighter">
                 Global leaderboard
               </h2>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Top 10
-              </span>
+              <Link
+                to="/leaderboard"
+                onMouseEnter={() => play("hover")}
+                className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
+              >
+                View all →
+              </Link>
             </div>
             <div className="space-y-2">
               {(leaderboard.data ?? []).length === 0 ? (
@@ -248,6 +258,7 @@ function Home() {
                 (leaderboard.data ?? []).map((p, i) => (
                   <div
                     key={p.id}
+                    onMouseEnter={() => play("hover")}
                     style={{ animationDelay: `${150 + i * 55}ms` }}
                     className={`row-slide ticker-enter flex items-center justify-between border border-foreground/5 p-3 font-mono text-sm ${
                       i === 0
@@ -411,6 +422,8 @@ function Home() {
             </p>
             <Link
               to={session ? "/play" : "/auth"}
+              onMouseEnter={() => play("hover")}
+              onFocus={() => play("hover")}
               className="cta-sweep inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
             >
               Enter the arena

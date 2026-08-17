@@ -13,7 +13,6 @@ export function SiteHeader() {
   const sfx = {
     onMouseEnter: () => play("hover"),
     onFocus: () => play("hover"),
-    onClick: () => play("click"),
   };
 
   async function signOut() {
@@ -54,6 +53,13 @@ export function SiteHeader() {
         >
           {muted ? "SFX OFF" : "SFX ON"}
         </button>
+        <Link
+          to="/leaderboard"
+          {...sfx}
+          className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+        >
+          Leaderboard
+        </Link>
 
         {session ? (
           <>

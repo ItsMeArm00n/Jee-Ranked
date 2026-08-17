@@ -24,6 +24,16 @@ export const getLeaderboard = createServerFn({ method: "GET" }).handler(async ()
   return (data ?? []).map((p) => ({ ...p, rank: rankTitle(p.elo) }));
 });
 
+export const getFullLeaderboard = createServerFn({ method: "GET" }).handler(async () => {
+  const { adminClient, rankTitle } = await import("./game.server");
+  const { data } = await adminClient()
+    .from("profiles")
+    .select("id, username, elo, wins, losses, draws, matches_played, avatar_url")
+    .eq("is_bot", false)
+    .order("elo", { ascending: false });
+  return (data ?? []).map((p, i) => ({ ...p, rank: rankTitle(p.elo), position: i + 1 }));
+});
+
 export const updateProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
@@ -105,7 +115,7 @@ export const getMatchReplay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { adminClient, rankTitle } = await import("./game.server");
+    const { adminClient, rankTitle, jeeMarks } = await import("./game.server");
     const db = adminClient();
     const uid = context.userId;
 
@@ -167,11 +177,17 @@ export const getMatchReplay = createServerFn({ method: "POST" })
 
     const myDelta = isP1 ? match.player1_delta : match.player2_delta;
 
+    const myAnswers = events.filter((e) => e.side === "me");
+    const oppAnswers = events.filter((e) => e.side === "opponent");
+    const myMarks = jeeMarks(myAnswers.map((e) => ({ is_correct: e.isCorrect, choice: e.choice })));
+    const oppMarks = jeeMarks(oppAnswers.map((e) => ({ is_correct: e.isCorrect, choice: e.choice })));
+
     return {
       matchId: match.id,
       durationMs: Math.max(1000, Math.min(match.duration_seconds * 1000, endMs - startMs)),
       totalDurationMs: match.duration_seconds * 1000,
       total: qids.length,
+      isSolo: !match.player2_id,
       questions,
       events,
       me: {
@@ -179,13 +195,19 @@ export const getMatchReplay = createServerFn({ method: "POST" })
         elo: prof(uid)?.elo ?? 1200,
         rank: rankTitle(prof(uid)?.elo ?? 1200),
         avatar_url: prof(uid)?.avatar_url ?? null,
+        marks: myMarks,
+        correct: myAnswers.filter((e) => e.isCorrect).length,
       },
-      opponent: {
-        username: prof(opponentId)?.username ?? "Opponent",
-        elo: prof(opponentId)?.elo ?? 1200,
-        isBot: prof(opponentId)?.is_bot ?? false,
-        avatar_url: prof(opponentId)?.avatar_url ?? null,
-      },
+      opponent: opponentId
+        ? {
+            username: prof(opponentId)?.username ?? "Opponent",
+            elo: prof(opponentId)?.elo ?? 1200,
+            isBot: prof(opponentId)?.is_bot ?? false,
+            avatar_url: prof(opponentId)?.avatar_url ?? null,
+            marks: oppMarks,
+            correct: oppAnswers.filter((e) => e.isCorrect).length,
+          }
+        : null,
       outcome: match.winner_id === null ? "draw" : match.winner_id === uid ? "win" : "loss",
       delta: myDelta ?? 0,
     };
@@ -219,18 +241,19 @@ export const findMatch = createServerFn({ method: "POST" })
     const uid = context.userId;
     await ensureProfileRow(uid, (context.claims as { email?: string })?.email);
 
-    // Already in a live or queued match? Rejoin it.
+    // Already in a live or queued ranked match? Rejoin it.
     const { data: mine } = await db
       .from("matches")
       .select("id, status")
       .or(`player1_id.eq.${uid},player2_id.eq.${uid}`)
       .in("status", ["waiting", "active"])
+      .or("is_ranked.is.null,is_ranked.eq.true")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (mine) return { matchId: mine.id as string, status: mine.status as string };
 
-    // Expire stale queue entries.
+    // Expire stale ranked queue entries.
     await db
       .from("matches")
       .update({ status: "cancelled" })
@@ -454,6 +477,7 @@ export const getMatchState = createServerFn({ method: "POST" })
       finalizeIfDone,
       enforceAfk,
       rankTitle,
+      jeeMarks,
       SECONDS_PER_QUESTION,
       AFK_GRACE_SECONDS,
     } = await import("./game.server");
@@ -529,6 +553,8 @@ export const getMatchState = createServerFn({ method: "POST" })
 
     const myScore = mine.filter((r) => r.is_correct).length;
     const oppScore = theirs.filter((r) => r.is_correct).length;
+    const myMarks = jeeMarks(mine.map((r) => ({ is_correct: r.is_correct, choice: r.choice })));
+    const oppMarks = jeeMarks(theirs.map((r) => ({ is_correct: r.is_correct, choice: r.choice })));
     const myDelta = isP1 ? match.player1_delta : match.player2_delta;
     const meProfile = prof(uid);
 
@@ -548,6 +574,8 @@ export const getMatchState = createServerFn({ method: "POST" })
       mine: { choice: string | null; correct: boolean; missed: boolean };
       theirs: { choice: string | null; correct: boolean; missed: boolean } | null;
       correctOption: string | null;
+      stem: string | null;
+      options: { key: string; text: string }[];
     } | null = null;
     if (match.status === "active" && currentIndex > 0) {
       const prevIndex = currentIndex - 1;
@@ -555,7 +583,7 @@ export const getMatchState = createServerFn({ method: "POST" })
       const oppA = opponentId ? theirs.find((r) => r.question_index === prevIndex) : null;
       const { data: prevQ } = await db
         .from("questions")
-        .select("correct_option")
+        .select("stem, option_a, option_b, option_c, option_d, correct_option")
         .eq("id", match.question_ids[prevIndex]!)
         .single();
       lastResult = {
@@ -565,7 +593,63 @@ export const getMatchState = createServerFn({ method: "POST" })
           ? { choice: oppA?.choice ?? null, correct: oppA ? oppA.is_correct : false, missed: !oppA }
           : null,
         correctOption: prevQ?.correct_option ?? null,
+        stem: prevQ?.stem ?? null,
+        options: prevQ
+          ? [
+              { key: "A", text: prevQ.option_a },
+              { key: "B", text: prevQ.option_b },
+              { key: "C", text: prevQ.option_c },
+              { key: "D", text: prevQ.option_d },
+            ]
+          : [],
       };
+    }
+
+    // Full question review for finished matches.
+    let questionReview: {
+      index: number;
+      subject: string;
+      topic: string;
+      stem: string;
+      options: { key: string; text: string }[];
+      correctOption: string;
+      myChoice: string | null;
+      myCorrect: boolean;
+      myMissed: boolean;
+      oppChoice: string | null;
+      oppCorrect: boolean;
+      oppMissed: boolean;
+    }[] = [];
+    if (match.status === "finished") {
+      const qids: string[] = match.question_ids;
+      const { data: allQs } = await db
+        .from("questions")
+        .select("id, subject, topic, stem, option_a, option_b, option_c, option_d, correct_option")
+        .in("id", qids);
+      questionReview = qids.map((qid, i) => {
+        const q = allQs?.find((x) => x.id === qid);
+        const myA = mine.find((r) => r.question_index === i);
+        const oppA = theirs.find((r) => r.question_index === i);
+        return {
+          index: i,
+          subject: q?.subject ?? "—",
+          topic: q?.topic ?? "—",
+          stem: q?.stem ?? "Question unavailable",
+          options: [
+            { key: "A", text: q?.option_a ?? "" },
+            { key: "B", text: q?.option_b ?? "" },
+            { key: "C", text: q?.option_c ?? "" },
+            { key: "D", text: q?.option_d ?? "" },
+          ],
+          correctOption: q?.correct_option ?? "",
+          myChoice: myA?.choice ?? null,
+          myCorrect: myA ? myA.is_correct : false,
+          myMissed: !myA,
+          oppChoice: oppA?.choice ?? null,
+          oppCorrect: oppA ? oppA.is_correct : false,
+          oppMissed: !oppA,
+        };
+      });
     }
 
     return {
@@ -575,7 +659,7 @@ export const getMatchState = createServerFn({ method: "POST" })
       isSolo,
       total,
       endsAt: match.ends_at,
-      secondsPerQuestion: SECONDS_PER_QUESTION,
+      secondsPerQuestion: Math.round(match.duration_seconds / total),
       questionEndsAt: question ? round.endsAt : null,
       waitingForOpponent,
       myChoice,
@@ -591,6 +675,7 @@ export const getMatchState = createServerFn({ method: "POST" })
         avatar_url: meProfile?.avatar_url ?? null,
         answered: mine.length,
         correct: myScore,
+        marks: myMarks,
       },
       opponent: opponentId
         ? {
@@ -600,6 +685,7 @@ export const getMatchState = createServerFn({ method: "POST" })
             avatar_url: prof(opponentId)?.avatar_url ?? null,
             answered: theirs.length,
             correct: match.status === "finished" ? oppScore : null,
+            marks: match.status === "finished" ? oppMarks : null,
           }
         : null,
       question,
@@ -611,8 +697,11 @@ export const getMatchState = createServerFn({ method: "POST" })
               newElo: meProfile?.elo ?? 1200,
               myScore,
               oppScore,
+              myMarks,
+              oppMarks,
             }
           : null,
+      questionReview,
     };
   });
 
@@ -676,8 +765,14 @@ export const submitAnswer = createServerFn({ method: "POST" })
       .eq("status", "active");
 
     // Round may now advance (both answered) or the bot may answer.
-    const next = await advanceMatch(match);
-    if (next.done) await finalizeIfDone(match);
+    // Re-fetch the match to avoid stale state (e.g. last question finalisation).
+    const { data: freshMatch } = await db
+      .from("matches")
+      .select("*")
+      .eq("id", match.id)
+      .maybeSingle();
+    const next = await advanceMatch(freshMatch ?? match);
+    if (next.done) await finalizeIfDone(freshMatch ?? match);
     return { ok: true, isCorrect };
   });
 
@@ -703,6 +798,113 @@ export const forfeitMatch = createServerFn({ method: "POST" })
     const settled = await settleMatch(match, isP1 ? 0 : 1, uid, "manual");
     if (!settled) return { ok: false, reason: "Could not update match — try again" };
     return { ok: true };
+  });
+
+export const getUserStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { adminClient } = await import("./game.server");
+    const db = adminClient();
+    const uid = context.userId;
+
+    const { data: matches } = await db
+      .from("matches")
+      .select(
+        "status, is_ranked, is_bot_match, player1_id, player2_id, winner_id, subject_filter",
+      )
+      .or(`player1_id.eq.${uid},player2_id.eq.${uid}`)
+      .eq("status", "finished");
+
+    const { count: totalAnswers } = await db
+      .from("match_answers")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", uid);
+
+    const { count: correctAnswers } = await db
+      .from("match_answers")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .eq("is_correct", true);
+
+    const rows = matches ?? [];
+
+    let ranked = 0,
+      rankedW = 0,
+      rankedL = 0,
+      rankedD = 0;
+    let unranked = 0,
+      unrankedW = 0,
+      unrankedL = 0,
+      unrankedD = 0;
+    let solo = 0,
+      soloW = 0,
+      soloL = 0,
+      soloD = 0;
+    let duo = 0,
+      duoW = 0,
+      duoL = 0,
+      duoD = 0;
+    let botMatches = 0,
+      botWins = 0;
+    const subjects: Record<string, { played: number; wins: number }> = {};
+
+    for (const m of rows) {
+      const isRanked = m.is_ranked !== false;
+      const isSolo = !m.player2_id;
+      const isBot = m.is_bot_match;
+      const won = m.winner_id === uid;
+      const lost = m.winner_id !== null && m.winner_id !== uid;
+      const drawn = m.winner_id === null;
+
+      if (isRanked) {
+        ranked++;
+        if (won) rankedW++;
+        else if (lost) rankedL++;
+        else rankedD++;
+      } else {
+        unranked++;
+        if (won) unrankedW++;
+        else if (lost) unrankedL++;
+        else unrankedD++;
+      }
+
+      if (isSolo) {
+        solo++;
+        if (won) soloW++;
+        else if (lost) soloL++;
+        else soloD++;
+      } else {
+        duo++;
+        if (won) duoW++;
+        else if (lost) duoL++;
+        else duoD++;
+      }
+
+      if (isBot) {
+        botMatches++;
+        if (won) botWins++;
+      }
+
+      const subj = m.subject_filter ?? "mixed";
+      if (!subjects[subj]) subjects[subj] = { played: 0, wins: 0 };
+      subjects[subj].played++;
+      if (won) subjects[subj].wins++;
+    }
+
+    return {
+      totalMatches: rows.length,
+      ranked: { played: ranked, wins: rankedW, losses: rankedL, draws: rankedD },
+      unranked: { played: unranked, wins: unrankedW, losses: unrankedL, draws: unrankedD },
+      solo: { played: solo, wins: soloW, losses: soloL, draws: soloD },
+      duo: { played: duo, wins: duoW, losses: duoL, draws: duoD },
+      bot: { played: botMatches, wins: botWins },
+      subjects,
+      accuracy: {
+        total: totalAnswers ?? 0,
+        correct: correctAnswers ?? 0,
+        pct: totalAnswers ? Math.round(((correctAnswers ?? 0) / totalAnswers) * 100) : 0,
+      },
+    };
   });
 
 export const confirmActive = createServerFn({ method: "POST" })

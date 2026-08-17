@@ -82,7 +82,7 @@ function ReplayPage() {
     }
     lastFired.current = idx;
     const e = past[idx]!;
-    play(e.side === "me" ? (e.isCorrect ? "correct" : "wrong") : "opponent");
+    play(e.side === "me" ? (e.isCorrect ? "correct" : "wrong") : "click");
   }, [past, playing, play]);
 
   if (isLoading) {
@@ -116,6 +116,7 @@ function ReplayPage() {
     : 0;
   const q = data.questions[current];
   const myAnswerHere = events.find((e) => e.side === "me" && e.index === current);
+  const oppAnswerHere = events.find((e) => e.side === "opponent" && e.index === current);
 
   function seek(next: number) {
     setT(next);
@@ -128,7 +129,15 @@ function ReplayPage() {
       <SiteHeader />
       <main className="mx-auto max-w-7xl space-y-10 px-6 py-10">
         <div className="wipe-enter flex flex-wrap items-end justify-between gap-6 border-b border-border pb-6">
-          <div>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              onMouseEnter={() => play("hover")}
+              className="border border-border px-3 py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+            >
+              ← Back
+            </Link>
+            <div>
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Match replay
             </span>
@@ -136,23 +145,37 @@ function ReplayPage() {
               <span className="flex flex-wrap items-center gap-3">
                 <Avatar url={data.me.avatar_url} name={data.me.username} size={40} />
                 {data.me.username}
-                <span className="text-primary">vs</span>
-                <Avatar url={data.opponent.avatar_url} name={data.opponent.username} size={40} />
-                {data.opponent.username}
-                {data.opponent.isBot ? (
-                  <span className="font-mono text-xs not-italic">BOT</span>
+                {data.opponent ? (
+                  <>
+                    <span className="text-primary">vs</span>
+                    <Avatar url={data.opponent.avatar_url} name={data.opponent.username} size={40} />
+                    {data.opponent.username}
+                    {data.opponent.isBot ? (
+                      <span className="font-mono text-xs not-italic">BOT</span>
+                    ) : null}
+                  </>
                 ) : null}
               </span>
             </h1>
+            </div>
           </div>
           <div className="text-right font-mono text-xs uppercase tracking-widest">
             <div className="text-muted-foreground">Final</div>
             <div className="text-2xl text-primary">
-              {data.outcome === "win" ? "Victory" : data.outcome === "loss" ? "Defeat" : "Draw"}{" "}
-              <span className="text-foreground">
-                {data.delta >= 0 ? "+" : ""}
-                {data.delta}
-              </span>
+              {data.isSolo
+                ? "Complete"
+                : <>{data.outcome === "win"
+                    ? "Victory"
+                    : data.outcome === "loss"
+                      ? "Defeat"
+                      : "Draw"}{" "}
+                  <span className="text-foreground">
+                    {data.delta >= 0 ? "+" : ""}
+                    {data.delta}
+                  </span></>}
+            </div>
+            <div className="mt-1 text-[10px] text-muted-foreground">
+              {data.me.marks} — {data.opponent?.marks ?? 0} marks
             </div>
           </div>
         </div>
@@ -234,33 +257,79 @@ function ReplayPage() {
             {q ? (
               <div
                 key={current}
-                className="animate-enter space-y-4 border border-border bg-surface/30 p-8"
+                className="animate-enter border border-border bg-surface/30 p-8"
               >
-                <span className="font-mono text-xs uppercase text-primary">
-                  {q.subject} / {q.topic} / Q{q.index + 1}
-                </span>
-                <h2 className="max-w-[55ch] text-xl font-medium leading-relaxed">{q.stem}</h2>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-4">
+                    <span className="font-mono text-xs uppercase text-primary">
+                      {q.subject} / {q.topic} / Q{q.index + 1}
+                    </span>
+                    <h2 className="max-w-[55ch] text-xl font-medium leading-relaxed">{q.stem}</h2>
+                  </div>
+                  <div className="shrink-0 space-y-1 text-right">
+                    <div className="border border-primary bg-primary/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-primary">
+                      Correct: {q.correct}
+                    </div>
+                    {myAnswerHere && (myAnswerHere.atMs ?? Infinity) <= t ? (
+                      <div className="font-mono text-[10px] uppercase tracking-widest">
+                        <span className={myAnswerHere.isCorrect ? "text-success" : "text-destructive"}>
+                          {data.me.username}: {myAnswerHere.isCorrect ? "+4" : "−1"}
+                        </span>
+                        {oppAnswerHere && (oppAnswerHere.atMs ?? Infinity) <= t ? (
+                          <>
+                            <span className="text-muted-foreground/40"> / </span>
+                            <span className={oppAnswerHere.isCorrect ? "text-success" : "text-destructive"}>
+                              {data.opponent?.username ?? "Opp"}: {oppAnswerHere.isCorrect ? "+4" : "−1"}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {q.options.map((o) => {
                     const isCorrect = o.key === q.correct;
                     const isMine =
                       myAnswerHere?.choice === o.key && (myAnswerHere?.atMs ?? Infinity) <= t;
+                    const isTheirs =
+                      oppAnswerHere?.choice === o.key && (oppAnswerHere?.atMs ?? Infinity) <= t;
                     return (
                       <div
                         key={o.key}
-                        className={`border p-4 font-mono text-sm transition-colors duration-300 ${
-                          isMine && !isCorrect
-                            ? "border-destructive text-destructive"
-                            : isCorrect && mine.some((m) => m.index === current)
-                              ? "border-primary text-primary"
-                              : "border-border text-muted-foreground"
+                        className={`relative border p-4 font-mono text-sm transition-colors duration-300 ${
+                          isCorrect
+                            ? "border-primary bg-primary/10 text-primary"
+                            : isMine
+                              ? "border-destructive bg-destructive/5 text-destructive"
+                              : isTheirs
+                                ? "border-foreground/40 bg-foreground/5 text-foreground/70"
+                                : "border-border text-muted-foreground"
                         }`}
                       >
-                        <span className="mr-3">{o.key}.</span>
-                        {o.text}
-                        {isMine ? (
-                          <span className="ml-2 text-[10px] uppercase">your pick</span>
-                        ) : null}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="mr-2 font-bold">{o.key}.</span>
+                            {o.text}
+                          </div>
+                          {isCorrect ? (
+                            <span className="shrink-0 rounded bg-primary/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-primary">
+                              correct
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {isMine ? (
+                            <span className="rounded bg-destructive/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-destructive">
+                              {data.me.username}
+                            </span>
+                          ) : null}
+                          {isTheirs ? (
+                            <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/60">
+                              {data.opponent?.username ?? "opponent"}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}
@@ -281,7 +350,7 @@ function ReplayPage() {
                   }`}
                 >
                   <span className="tabular-nums text-muted-foreground">{clock(e.atMs)}</span>
-                  <span>{e.side === "me" ? data.me.username : data.opponent.username}</span>
+                  <span>{e.side === "me" ? data.me.username : data.opponent?.username ?? "Opponent"}</span>
                   <span>Q{e.index + 1}</span>
                   <span className={e.isCorrect ? "text-primary" : "text-destructive"}>
                     {e.isCorrect ? "CORRECT" : "WRONG"}
@@ -294,22 +363,30 @@ function ReplayPage() {
 
           <div className="space-y-10 lg:col-span-4">
             <ProgressBlock
-              label={`${data.me.username} — ${myScore} correct`}
+              label={`${data.me.username} — ${data.me.marks} marks`}
               answered={mine.length}
               total={data.total}
               accent="bg-primary"
             />
-            <ProgressBlock
-              label={`${data.opponent.username} — ${oppScore} correct`}
-              answered={theirs.length}
-              total={data.total}
-              accent="bg-foreground/40"
-            />
+            {data.opponent ? (
+              <ProgressBlock
+                label={`${data.opponent.username} — ${data.opponent.marks} marks`}
+                answered={theirs.length}
+                total={data.total}
+                accent="bg-foreground/40"
+              />
+            ) : null}
             <Link
               to="/play"
               className="block border border-foreground px-6 py-3 text-center font-mono text-xs uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:bg-foreground hover:text-background"
             >
               Queue again
+            </Link>
+            <Link
+              to="/"
+              className="block border border-border px-6 py-3 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+            >
+              Back to lobby
             </Link>
           </div>
         </div>
