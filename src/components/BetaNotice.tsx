@@ -80,7 +80,7 @@ export function BetaNotice({ onDismiss }: BetaNoticeProps) {
         <button
           onClick={dismiss}
           onMouseEnter={() => play("hover")}
-          className="cta-sweep mt-8 w-full bg-primary py-4 font-mono text-xs uppercase tracking-widest text-primary-foreground transition-all duration-300 hover:brightness-110"
+          className="cta-sweep glow-pulse mt-8 w-full bg-primary py-4 font-mono text-xs uppercase tracking-widest text-primary-foreground transition-all duration-300 hover:brightness-110"
         >
           I understand
         </button>

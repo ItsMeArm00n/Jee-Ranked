@@ -66,7 +66,7 @@ export function SiteFooter() {
                   <Link
                     to="/play"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Find a Duel
                   </Link>
@@ -75,7 +75,7 @@ export function SiteFooter() {
                   <Link
                     to="/leaderboard"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Leaderboard
                   </Link>
@@ -92,7 +92,7 @@ export function SiteFooter() {
                   <Link
                     to="/profile"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Profile
                   </Link>
@@ -101,7 +101,7 @@ export function SiteFooter() {
                   <Link
                     to="/auth"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Sign In
                   </Link>
@@ -118,7 +118,7 @@ export function SiteFooter() {
                   <Link
                     to="/privacy"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Privacy Policy
                   </Link>
@@ -127,7 +127,7 @@ export function SiteFooter() {
                   <Link
                     to="/terms"
                     {...sfx}
-                    className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     Terms & Conditions
                   </Link>

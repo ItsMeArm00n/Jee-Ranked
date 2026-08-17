@@ -90,7 +90,7 @@ function AuthPage() {
         <button
           onClick={() => { play("click"); google(); }}
           onMouseEnter={() => play("hover")}
-          className="ticker-enter border border-border bg-surface px-6 py-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 [animation-delay:400ms] hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+          className="ticker-enter border border-border bg-surface px-6 py-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 [animation-delay:400ms] hover:-translate-y-1 hover:border-primary hover:text-primary hover:shadow-[0_0_24px_-6px_var(--color-primary)]"
         >
           Continue with Google
         </button>

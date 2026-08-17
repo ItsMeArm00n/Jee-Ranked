@@ -438,7 +438,7 @@ function HeroStat({
 }) {
   return (
     <div
-      className="border-t-2 border-primary/30 bg-surface/40 p-5 animate-enter"
+      className="border-t-2 border-primary/30 bg-surface/40 p-5 animate-enter hover-lift"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -468,7 +468,7 @@ function CategoryCard({
   const draws = stats.draws ?? 0;
   return (
     <div
-      className={`border-l-4 ${accent} bg-surface/40 p-6 animate-enter`}
+      className={`border-l-4 ${accent} bg-surface/40 p-6 animate-enter hover-lift`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between">

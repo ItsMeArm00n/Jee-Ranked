@@ -49,14 +49,14 @@ export function SiteHeader() {
           onFocus={() => play("hover")}
           aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
           title={muted ? "Sound off" : "Sound on"}
-          className="border border-border px-3 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+          className="focus-ring border border-border px-3 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
         >
           {muted ? "SFX OFF" : "SFX ON"}
         </button>
         <Link
           to="/leaderboard"
           {...sfx}
-          className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+          className="focus-ring border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
         >
           Leaderboard
         </Link>
@@ -66,7 +66,7 @@ export function SiteHeader() {
             <Link
               to="/profile"
               {...sfx}
-              className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+              className="focus-ring border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
             >
               Profile
             </Link>
@@ -74,7 +74,7 @@ export function SiteHeader() {
               onClick={signOut}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+              className="focus-ring border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
             >
               Sign out
             </button>
@@ -83,7 +83,7 @@ export function SiteHeader() {
           <Link
             to="/auth"
             {...sfx}
-            className="border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+            className="focus-ring border border-border px-4 py-2 uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
           >
             Sign in
           </Link>

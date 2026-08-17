@@ -522,10 +522,11 @@ function MatchPage() {
               Question review
             </h2>
             <div className="space-y-6">
-              {data.questionReview.map((qr) => (
+              {data.questionReview.map((qr, qi) => (
                 <div
                   key={qr.index}
-                  className="border border-border bg-surface/30 p-6"
+                  style={{ animationDelay: `${qi * 80}ms` }}
+                  className="fade-up border border-border bg-surface/30 p-6 transition-all duration-300 hover:border-primary/30 hover:bg-surface/50"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -617,7 +618,7 @@ function MatchPage() {
 
       {showResult && data.lastResult ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
-          <div className="animate-enter w-full max-w-lg border border-border bg-surface p-8">
+          <div className="w-full max-w-lg border border-border bg-surface p-8 scale-in">
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Round result · Q{data.lastResult.index + 1}
             </div>

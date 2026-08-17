@@ -190,7 +190,7 @@ function LeaderboardPage() {
               <div
                 key={t.name}
                 style={{ animationDelay: `${i * 60}ms` }}
-                className="ticker-enter border border-border p-4"
+                className="ticker-enter border border-border p-4 transition-all duration-300 hover:border-primary/40 hover:bg-primary/5"
               >
                 <div className={`font-display text-lg uppercase italic ${t.color}`}>
                   {t.name}

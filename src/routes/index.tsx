@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
 import { useSession } from "@/hooks/useSession";
 import { useSfx } from "@/hooks/useSfx";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { getGlobalStats, getLeaderboard, getMyProfile } from "@/lib/game.functions";
 
 export const Route = createFileRoute("/")({
@@ -103,6 +104,12 @@ function Home() {
     queryFn: () => profileFn({}),
     enabled: !!session,
   });
+
+  const leaderboardReveal = useScrollReveal();
+  const howReveal = useScrollReveal();
+  const subjectsReveal = useScrollReveal();
+  const faqReveal = useScrollReveal();
+  const ctaReveal = useScrollReveal();
 
   const marquee = [
     "SEASON 01 // RESONANCE ARENA",
@@ -235,8 +242,8 @@ function Home() {
 
       <main className="mx-auto max-w-7xl space-y-28 px-6 py-24">
         {/* LEADERBOARD + TIERS */}
-        <section className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="wipe-enter border border-border bg-surface/50 p-8 lg:col-span-8">
+        <section ref={leaderboardReveal.ref} className={`grid grid-cols-1 gap-8 lg:grid-cols-12 ${leaderboardReveal.visible ? "fade-up" : "opacity-0"}`}>
+          <div className="wipe-enter border border-border bg-surface/50 p-8 transition-all duration-300 hover:border-primary/40 lg:col-span-8">
             <div className="mb-6 flex items-end justify-between">
               <h2 className="font-display text-3xl uppercase italic tracking-tighter">
                 Global leaderboard
@@ -292,7 +299,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="wipe-enter border border-border p-8 [animation-delay:150ms] lg:col-span-4">
+          <div className="wipe-enter border border-border p-8 transition-all duration-300 hover:border-primary/40 [animation-delay:150ms] lg:col-span-4">
             <h2 className="mb-6 font-display text-3xl uppercase italic tracking-tighter">
               Rank ladder
             </h2>
@@ -315,7 +322,7 @@ function Home() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section id="how" className="scroll-mt-24 border-t border-border pt-16">
+        <section ref={howReveal.ref} id="how" className={`scroll-mt-24 border-t border-border pt-16 ${howReveal.visible ? "fade-up" : "opacity-0"}`}>
           <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">
             Three minutes to your <span className="text-primary">first rating</span>
           </h2>
@@ -339,7 +346,7 @@ function Home() {
                 style={{ animationDelay: `${i * 120}ms` }}
                 className="ticker-enter group cursor-default"
               >
-                <div className="font-display text-6xl uppercase transition-colors duration-300 group-hover:text-primary">
+                <div className="font-display text-6xl transition-all duration-300 group-hover:scale-110 group-hover:text-primary group-hover:tracking-wider">
                   0{i + 1}
                 </div>
                 <h3 className="mt-4 font-display text-2xl uppercase italic tracking-tight">
@@ -354,7 +361,7 @@ function Home() {
         </section>
 
         {/* SUBJECTS */}
-        <section className="border-t border-border pt-16">
+        <section ref={subjectsReveal.ref} className={`border-t border-border pt-16 ${subjectsReveal.visible ? "fade-up" : "opacity-0"}`}>
           <div className="flex items-end justify-between">
             <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">
               The paper
@@ -385,7 +392,7 @@ function Home() {
         </section>
 
         {/* FAQ */}
-        <section className="grid grid-cols-1 gap-10 border-t border-border pt-16 lg:grid-cols-12">
+        <section ref={faqReveal.ref} className={`grid grid-cols-1 gap-10 border-t border-border pt-16 lg:grid-cols-12 ${faqReveal.visible ? "fade-up" : "opacity-0"}`}>
           <h2 className="font-display text-5xl uppercase italic tracking-tighter lg:col-span-4">
             Arena rules
           </h2>
@@ -411,7 +418,7 @@ function Home() {
         </section>
 
         {/* CLOSING CTA */}
-        <section className="relative overflow-hidden border border-border bg-surface/50 p-12 text-center sm:p-20">
+        <section ref={ctaReveal.ref} className={`relative overflow-hidden border border-border bg-surface/50 p-12 text-center sm:p-20 ${ctaReveal.visible ? "fade-up" : "opacity-0"}`}>
           <div className="arena-grid pointer-events-none absolute inset-0 opacity-60" />
           <div className="relative space-y-8">
             <h2 className="font-display text-[clamp(2.5rem,7vw,5.5rem)] uppercase italic leading-none tracking-tighter">

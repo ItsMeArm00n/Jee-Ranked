@@ -183,12 +183,12 @@ function PlayPage() {
               onClick={() => selectMode("ranked")}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="cta-sweep border border-primary bg-primary/10 p-8 text-left transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/20"
+              className="cta-sweep group border border-primary bg-primary/10 p-8 text-left transition-all duration-400 hover:-translate-y-1 hover:bg-primary/20 hover:shadow-[0_0_32px_-8px_var(--color-primary)]"
             >
               <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
                 Competitive
               </div>
-              <div className="mt-2 font-display text-3xl uppercase italic tracking-tighter">
+              <div className="mt-2 font-display text-3xl uppercase italic tracking-tighter transition-all duration-300 group-hover:tracking-normal">
                 Ranked
               </div>
               <div className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -200,12 +200,12 @@ function PlayPage() {
               onClick={() => selectMode("unranked")}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="cta-sweep border border-border p-8 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+              className="cta-sweep group border border-border p-8 text-left transition-all duration-400 hover:-translate-y-1 hover:border-primary hover:text-primary hover:shadow-[0_0_32px_-8px_var(--color-primary)]"
             >
-              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground transition-colors duration-300 group-hover:text-primary">
                 Practice
               </div>
-              <div className="mt-2 font-display text-3xl uppercase italic tracking-tighter">
+              <div className="mt-2 font-display text-3xl uppercase italic tracking-tighter transition-all duration-300 group-hover:tracking-normal">
                 Unranked
               </div>
               <div className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -266,9 +266,9 @@ function PlayPage() {
                     if (s.value !== "All" && playMode === "random") setPlayMode("solo");
                   }}
                   onMouseEnter={() => play("hover")}
-                  className={`border p-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
+                  className={`border p-4 font-mono text-sm uppercase tracking-widest transition-all duration-400 hover:-translate-y-0.5 ${
                     subject === s.value
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary/10 text-primary shadow-[0_0_20px_-6px_var(--color-primary)]"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
@@ -376,6 +376,7 @@ function PlayPage() {
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
       <main className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center gap-10 px-6 py-20 text-center">
+        {/* Heading */}
         <div className="animate-enter">
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             {isSoloUnranked
@@ -397,24 +398,33 @@ function PlayPage() {
           </h1>
         </div>
 
+        {/* Radar + scanning animation */}
         {!isSoloUnranked && (
           <div className="radar flex size-24 items-center justify-center rounded-full border border-border">
             <div className="size-3 rotate-45 bg-primary" />
           </div>
         )}
 
+        {/* Your rating bar */}
         <div className="wipe-enter flex w-full max-w-md items-center justify-between border-y border-border bg-surface/40 px-6 py-5 font-mono text-sm [animation-delay:200ms]">
           <span className="text-muted-foreground uppercase">Your rating</span>
           <span className="text-primary">{profile.data ? `${profile.data.elo} ELO` : "—"}</span>
         </div>
 
+        {/* Timer with animated border */}
         {!isSoloUnranked && (
-          <div className="font-mono text-4xl tabular-nums timer-pulse">
-            {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
-            {String(elapsed % 60).padStart(2, "0")}
+          <div
+            className="timer-border relative px-8 py-3 [animation-delay:300ms]"
+            style={{ animation: "scale-in 0.5s var(--ease-out-expo) 0.3s both" }}
+          >
+            <div className="font-mono text-5xl tabular-nums timer-pulse">
+              {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
+              {String(elapsed % 60).padStart(2, "0")}
+            </div>
           </div>
         )}
 
+        {/* Status message with pulsing dots */}
         <p className="ticker-enter max-w-sm font-mono text-xs uppercase tracking-widest text-muted-foreground [animation-delay:350ms]">
           {isSoloUnranked
             ? "Loading your match…"
@@ -431,11 +441,28 @@ function PlayPage() {
                 : "Matchmaking unavailable"}
         </p>
 
+        {/* Searching indicator dots */}
+        {!isSoloUnranked && searching && elapsed < 25 && (
+          <div className="flex items-center gap-2 [animation-delay:500ms]" style={{ animation: "fade-up 0.5s var(--ease-out-expo) 0.5s both" }}>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="size-1.5 rounded-full bg-primary"
+                style={{
+                  animation: `dot-live 1.4s ease-in-out ${i * 0.3}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Cancel button */}
         <button
           onClick={abort}
           onMouseEnter={() => play("hover")}
           onFocus={() => play("hover")}
-          className="border border-border px-8 py-3 font-mono text-sm uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+          className="focus-ring border border-border px-8 py-3 font-mono text-sm uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+          style={{ animation: "fade-up 0.5s var(--ease-out-expo) 0.6s both" }}
         >
           {isSoloUnranked ? "Cancel" : "Cancel search"}
         </button>
