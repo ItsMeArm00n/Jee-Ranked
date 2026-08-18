@@ -19,6 +19,7 @@ import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/p
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMatchMatchIdRouteImport } from './routes/_authenticated/match.$matchId'
 import { Route as AuthenticatedReplayMatchIdRouteImport } from './routes/_authenticated/replay.$matchId'
+import { Route as AuthenticatedReviewMatchIdRouteImport } from './routes/_authenticated/review.$matchId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +72,12 @@ const AuthenticatedReplayMatchIdRoute =
     path: '/replay/$matchId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReviewMatchIdRoute =
+  AuthenticatedReviewMatchIdRouteImport.update({
+    id: '/review/$matchId',
+    path: '/review/$matchId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
+  '/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
+  '/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/_authenticated/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
+  '/_authenticated/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/match/$matchId'
     | '/replay/$matchId'
+    | '/review/$matchId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/match/$matchId'
     | '/replay/$matchId'
+    | '/review/$matchId'
   id:
     | '__root__'
     | '/'
@@ -142,6 +154,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/match/$matchId'
     | '/_authenticated/replay/$matchId'
+    | '/_authenticated/review/$matchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReplayMatchIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/review/$matchId': {
+      id: '/_authenticated/review/$matchId'
+      path: '/review/$matchId'
+      fullPath: '/review/$matchId'
+      preLoaderRoute: typeof AuthenticatedReviewMatchIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -233,6 +253,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedMatchMatchIdRoute: typeof AuthenticatedMatchMatchIdRoute
   AuthenticatedReplayMatchIdRoute: typeof AuthenticatedReplayMatchIdRoute
+  AuthenticatedReviewMatchIdRoute: typeof AuthenticatedReviewMatchIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -240,6 +261,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedMatchMatchIdRoute: AuthenticatedMatchMatchIdRoute,
   AuthenticatedReplayMatchIdRoute: AuthenticatedReplayMatchIdRoute,
+  AuthenticatedReviewMatchIdRoute: AuthenticatedReviewMatchIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

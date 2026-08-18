@@ -374,6 +374,14 @@ function MatchPage() {
               >
                   Watch replay
                 </Link>
+              <Link
+                to="/review/$matchId"
+                params={{ matchId }}
+                onMouseEnter={() => play("hover")}
+                className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
+              >
+                  Review questions
+                </Link>
                 <Link
                   to="/"
                   className="border border-foreground px-8 py-3 font-mono text-sm uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:bg-foreground hover:text-background"
@@ -515,105 +523,6 @@ function MatchPage() {
             </div>
           </div>
         )}
-
-        {data.status === "finished" && data.questionReview && data.questionReview.length > 0 ? (
-          <div className="space-y-6 border-t border-border pt-10">
-            <h2 className="font-display text-3xl uppercase italic tracking-tighter">
-              Question review
-            </h2>
-            <div className="space-y-6">
-              {data.questionReview.map((qr, qi) => (
-                <div
-                  key={qr.index}
-                  style={{ animationDelay: `${qi * 80}ms` }}
-                  className="fade-up border border-border bg-surface/30 p-6 transition-all duration-300 hover:border-primary/30 hover:bg-surface/50"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <span className="font-mono text-xs uppercase text-primary">
-                        {qr.subject} / {qr.topic} / Q{qr.index + 1}
-                      </span>
-                      <p className="text-sm font-medium leading-relaxed">{qr.stem}</p>
-                    </div>
-                    <div className="shrink-0 space-y-1 text-right">
-                      <div className="border border-success bg-success/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-success">
-                        Correct: {qr.correctOption}
-                      </div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest">
-                        <span className={qr.myCorrect ? "text-success" : qr.myMissed ? "text-muted-foreground" : "text-destructive"}>
-                          {data.me.username}: {qr.myMissed ? "0" : qr.myCorrect ? "+4" : "−1"}
-                        </span>
-                        {!data.isSolo ? (
-                          <>
-                            <span className="text-muted-foreground/40"> / </span>
-                            <span className={qr.oppCorrect ? "text-success" : qr.oppMissed ? "text-muted-foreground" : "text-destructive"}>
-                              {data.opponent?.username ?? "Opp"}: {qr.oppMissed ? "0" : qr.oppCorrect ? "+4" : "−1"}
-                            </span>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {qr.options.map((o) => {
-                      const isCorrect = o.key === qr.correctOption;
-                      const isMine = o.key === qr.myChoice;
-                      const isTheirs = !data.isSolo && o.key === qr.oppChoice;
-                      return (
-                        <div
-                          key={o.key}
-                          className={`relative border p-3 font-mono text-xs transition-colors ${
-                            isCorrect
-                              ? "border-success bg-success/10 text-success"
-                              : isMine
-                                ? "border-destructive bg-destructive/5 text-destructive"
-                                : isTheirs
-                                  ? "border-foreground/40 bg-foreground/5 text-foreground/70"
-                                  : "border-border text-muted-foreground"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className="mr-2 font-bold">{o.key}.</span>
-                              {o.text}
-                            </div>
-                            {isCorrect ? (
-                              <span className="shrink-0 rounded bg-success/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-success">
-                                correct
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {isMine && !qr.myMissed ? (
-                              <span className="rounded bg-destructive/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-destructive">
-                                {data.me.username}
-                              </span>
-                            ) : null}
-                            {isTheirs && !qr.oppMissed ? (
-                              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/60">
-                                {data.opponent?.username ?? "opponent"}
-                              </span>
-                            ) : null}
-                            {isMine && qr.myMissed ? (
-                              <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-destructive">
-                                {data.me.username} — no answer
-                              </span>
-                            ) : null}
-                            {isTheirs && qr.oppMissed ? (
-                              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/60">
-                                {data.opponent?.username ?? "opponent"} — no answer
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </main>
 
       {showResult && data.lastResult ? (

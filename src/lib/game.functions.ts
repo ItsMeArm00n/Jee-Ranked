@@ -938,3 +938,98 @@ export const confirmActive = createServerFn({ method: "POST" })
     if (error) return { ok: false, reason: "Could not save confirmation — try again" };
     return { ok: true };
   });
+
+export const getQuestionExplanations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        questions: z.array(
+          z.object({
+            index: z.number(),
+            subject: z.string(),
+            topic: z.string(),
+            stem: z.string(),
+            options: z.array(z.object({ key: z.string(), text: z.string() })),
+            correctOption: z.string(),
+            myChoice: z.string().nullable(),
+            myCorrect: z.boolean(),
+          }),
+        ),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { generateWithFallback } = await import("./gemini.server");
+
+    const questionsForPrompt = data.questions.map((q) => ({
+      index: q.index,
+      subject: q.subject,
+      topic: q.topic,
+      stem: q.stem,
+      options: q.options.map((o) => `${o.key}. ${o.text}`),
+      correctOption: q.correctOption,
+    }));
+
+    const prompt = `You are an expert JEE exam tutor. For each question below, provide a detailed solution.
+
+For each question, return a JSON object with these exact keys:
+- "index": the question index (number)
+- "concepts": array of key concepts/topics needed to solve this question (strings)
+- "formulas": array of relevant formulas wrapped in $ delimiters for LaTeX rendering (e.g. ["$F = ma$", "$E = mc^2$"])
+- "solution": detailed step-by-step solution explaining how to arrive at the correct answer (string, use \\n for line breaks, wrap math in $ delimiters for LaTeX rendering)
+- "whyWrong": object mapping each incorrect option letter to a brief explanation of why it is incorrect (e.g. {"A": " explanation...", "C": " explanation..."})
+
+Questions:
+${JSON.stringify(questionsForPrompt, null, 2)}
+
+Return ONLY a valid JSON array containing one object per question. No markdown fences, no extra text, no commentary.`;
+
+    const raw = await generateWithFallback(prompt);
+
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      return {
+        explanations: data.questions.map((q) => ({
+          index: q.index,
+          concepts: [] as string[],
+          formulas: [] as string[],
+          solution: "Explanation unavailable. Please try again.",
+          whyWrong: {} as Record<string, string>,
+        })),
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as Array<{
+        index: number;
+        concepts: string[];
+        formulas: string[];
+        solution: string;
+        whyWrong: Record<string, string>;
+      }>;
+
+      return {
+        explanations: data.questions.map((q) => {
+          const ai = parsed.find((p) => p.index === q.index);
+          return {
+            index: q.index,
+            concepts: ai?.concepts ?? [],
+            formulas: ai?.formulas ?? [],
+            solution: ai?.solution ?? "Explanation unavailable.",
+            whyWrong: ai?.whyWrong ?? {},
+          };
+        }),
+      };
+    } catch {
+      return {
+        explanations: data.questions.map((q) => ({
+          index: q.index,
+          concepts: [] as string[],
+          formulas: [] as string[],
+          solution: "Could not parse explanation. Please try again.",
+          whyWrong: {} as Record<string, string>,
+        })),
+      };
+    }
+  });

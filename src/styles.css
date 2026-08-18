@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -748,5 +749,32 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+}
+
+@keyframes ai-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes ai-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes ai-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+.ai-pulse-ring {
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+.ai-icon-spin {
+  animation: ai-spin 3s linear infinite;
+}
+
+.ai-dot {
+  animation: ai-bounce 1.4s ease-in-out infinite;
 }
 
