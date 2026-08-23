@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { isAdmin } from "@/lib/game.functions";
 import { useSession } from "@/hooks/useSession";
 import { useSfx } from "@/hooks/useSfx";
 
@@ -9,6 +11,14 @@ export function SiteHeader() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { muted, toggle, play } = useSfx();
+  const adminFn = useServerFn(isAdmin);
+
+  const { data: isAdminUser } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: () => adminFn(),
+    enabled: !!session,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const sfx = {
     onMouseEnter: () => play("hover"),
@@ -60,6 +70,16 @@ export function SiteHeader() {
         >
           Leaderboard
         </Link>
+
+        {isAdminUser ? (
+          <Link
+            to="/admin/reports"
+            {...sfx}
+            className="focus-ring border border-primary/50 bg-primary/10 px-4 py-2 uppercase tracking-widest text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary"
+          >
+            Reports
+          </Link>
+        ) : null}
 
         {session ? (
           <>

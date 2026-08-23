@@ -17,6 +17,8 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/play'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedQuestionsRouteImport } from './routes/_authenticated/questions'
+import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
 import { Route as AuthenticatedMatchMatchIdRouteImport } from './routes/_authenticated/match.$matchId'
 import { Route as AuthenticatedReplayMatchIdRouteImport } from './routes/_authenticated/replay.$matchId'
 import { Route as AuthenticatedReviewMatchIdRouteImport } from './routes/_authenticated/review.$matchId'
@@ -60,6 +62,17 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQuestionsRoute = AuthenticatedQuestionsRouteImport.update({
+  id: '/questions',
+  path: '/questions',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminReportsRoute =
+  AuthenticatedAdminReportsRouteImport.update({
+    id: '/admin/reports',
+    path: '/admin/reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMatchMatchIdRoute =
   AuthenticatedMatchMatchIdRouteImport.update({
     id: '/match/$matchId',
@@ -87,6 +100,8 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/play': typeof AuthenticatedPlayRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/questions': typeof AuthenticatedQuestionsRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
   '/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
@@ -99,6 +114,8 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/play': typeof AuthenticatedPlayRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/questions': typeof AuthenticatedQuestionsRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
   '/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
@@ -113,6 +130,8 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/play': typeof AuthenticatedPlayRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/questions': typeof AuthenticatedQuestionsRoute
+  '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/_authenticated/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
   '/_authenticated/review/$matchId': typeof AuthenticatedReviewMatchIdRoute
@@ -127,6 +146,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/play'
     | '/profile'
+    | '/questions'
+    | '/admin/reports'
     | '/match/$matchId'
     | '/replay/$matchId'
     | '/review/$matchId'
@@ -139,6 +160,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/play'
     | '/profile'
+    | '/questions'
+    | '/admin/reports'
     | '/match/$matchId'
     | '/replay/$matchId'
     | '/review/$matchId'
@@ -152,6 +175,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/play'
     | '/_authenticated/profile'
+    | '/_authenticated/questions'
+    | '/_authenticated/admin/reports'
     | '/_authenticated/match/$matchId'
     | '/_authenticated/replay/$matchId'
     | '/_authenticated/review/$matchId'
@@ -224,6 +249,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/questions': {
+      id: '/_authenticated/questions'
+      path: '/questions'
+      fullPath: '/questions'
+      preLoaderRoute: typeof AuthenticatedQuestionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/reports': {
+      id: '/_authenticated/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/match/$matchId': {
       id: '/_authenticated/match/$matchId'
       path: '/match/$matchId'
@@ -251,6 +290,8 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlayRoute: typeof AuthenticatedPlayRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedQuestionsRoute: typeof AuthenticatedQuestionsRoute
+  AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedMatchMatchIdRoute: typeof AuthenticatedMatchMatchIdRoute
   AuthenticatedReplayMatchIdRoute: typeof AuthenticatedReplayMatchIdRoute
   AuthenticatedReviewMatchIdRoute: typeof AuthenticatedReviewMatchIdRoute
@@ -259,6 +300,8 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlayRoute: AuthenticatedPlayRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedQuestionsRoute: AuthenticatedQuestionsRoute,
+  AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedMatchMatchIdRoute: AuthenticatedMatchMatchIdRoute,
   AuthenticatedReplayMatchIdRoute: AuthenticatedReplayMatchIdRoute,
   AuthenticatedReviewMatchIdRoute: AuthenticatedReviewMatchIdRoute,

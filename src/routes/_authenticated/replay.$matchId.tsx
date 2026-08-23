@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { getMatchReplay } from "@/lib/game.functions";
+import { renderLatex } from "@/lib/latex";
 import { useSfx } from "@/hooks/useSfx";
 
 export const Route = createFileRoute("/_authenticated/replay/$matchId")({
@@ -85,6 +87,25 @@ function ReplayPage() {
     play(e.side === "me" ? (e.isCorrect ? "correct" : "wrong") : "click");
   }, [past, playing, play]);
 
+  const mine = useMemo(() => past.filter((e) => e.side === "me"), [past]);
+  const theirs = useMemo(() => past.filter((e) => e.side === "opponent"), [past]);
+  const current = useMemo(
+    () =>
+      events.filter((e) => e.side === "me").length
+        ? Math.min((data?.total ?? 1) - 1, mine.length)
+        : 0,
+    [events, data?.total, mine.length],
+  );
+  const q = data?.questions[current];
+  const myAnswerHere = events.find((e) => e.side === "me" && e.index === current);
+  const oppAnswerHere = events.find((e) => e.side === "opponent" && e.index === current);
+
+  const qStemHtml = useMemo(() => (q ? renderLatex(q.stem) : ""), [q?.stem]);
+  const qOptionsHtml = useMemo(
+    () => (q ? q.options.map((o) => ({ key: o.key, html: renderLatex(o.text) })) : []),
+    [q?.options],
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -107,16 +128,8 @@ function ReplayPage() {
     );
   }
 
-  const mine = past.filter((e) => e.side === "me");
-  const theirs = past.filter((e) => e.side === "opponent");
   const myScore = mine.filter((e) => e.isCorrect).length;
   const oppScore = theirs.filter((e) => e.isCorrect).length;
-  const current = events.filter((e) => e.side === "me").length
-    ? Math.min(data.total - 1, mine.length)
-    : 0;
-  const q = data.questions[current];
-  const myAnswerHere = events.find((e) => e.side === "me" && e.index === current);
-  const oppAnswerHere = events.find((e) => e.side === "opponent" && e.index === current);
 
   function seek(next: number) {
     setT(next);
@@ -138,41 +151,45 @@ function ReplayPage() {
               ← Back
             </Link>
             <div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Match replay
-            </span>
-            <h1 className="mask-reveal font-display text-6xl uppercase italic leading-none tracking-tighter">
-              <span className="flex flex-wrap items-center gap-3">
-                <Avatar url={data.me.avatar_url} name={data.me.username} size={40} />
-                {data.me.username}
-                {data.opponent ? (
-                  <>
-                    <span className="text-primary">vs</span>
-                    <Avatar url={data.opponent.avatar_url} name={data.opponent.username} size={40} />
-                    {data.opponent.username}
-                    {data.opponent.isBot ? (
-                      <span className="font-mono text-xs not-italic">BOT</span>
-                    ) : null}
-                  </>
-                ) : null}
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                Match replay
               </span>
-            </h1>
+              <h1 className="mask-reveal font-display text-6xl uppercase italic leading-none tracking-tighter">
+                <span className="flex flex-wrap items-center gap-3">
+                  <Avatar url={data.me.avatar_url} name={data.me.username} size={40} />
+                  {data.me.username}
+                  {data.opponent ? (
+                    <>
+                      <span className="text-primary">vs</span>
+                      <Avatar
+                        url={data.opponent.avatar_url}
+                        name={data.opponent.username}
+                        size={40}
+                      />
+                      {data.opponent.username}
+                      {data.opponent.isBot ? (
+                        <span className="font-mono text-xs not-italic">BOT</span>
+                      ) : null}
+                    </>
+                  ) : null}
+                </span>
+              </h1>
             </div>
           </div>
           <div className="text-right font-mono text-xs uppercase tracking-widest">
             <div className="text-muted-foreground">Final</div>
             <div className="text-2xl text-primary">
-              {data.isSolo
-                ? "Complete"
-                : <>{data.outcome === "win"
-                    ? "Victory"
-                    : data.outcome === "loss"
-                      ? "Defeat"
-                      : "Draw"}{" "}
+              {data.isSolo ? (
+                "Complete"
+              ) : (
+                <>
+                  {data.outcome === "win" ? "Victory" : data.outcome === "loss" ? "Defeat" : "Draw"}{" "}
                   <span className="text-foreground">
                     {data.delta >= 0 ? "+" : ""}
                     {data.delta}
-                  </span></>}
+                  </span>
+                </>
+              )}
             </div>
             <div className="mt-1 text-[10px] text-muted-foreground">
               {data.me.marks} — {data.opponent?.marks ?? 0} marks
@@ -255,16 +272,23 @@ function ReplayPage() {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="space-y-8 lg:col-span-8">
             {q ? (
-              <div
-                key={current}
-                className="animate-enter border border-border bg-surface/30 p-8"
-              >
+              <div key={current} className="animate-enter border border-border bg-surface/30 p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-4">
-                    <span className="font-mono text-xs uppercase text-primary">
-                      {q.subject} / {q.topic} / Q{q.index + 1}
-                    </span>
-                    <h2 className="max-w-[55ch] text-xl font-medium leading-relaxed">{q.stem}</h2>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="font-mono text-xs uppercase text-primary">
+                        {q.subject} / {q.topic} / Q{q.index + 1}
+                      </span>
+                      <ReportQuestionDialog
+                        questionId={q.id}
+                        matchId={matchId}
+                        questionIndex={q.index}
+                      />
+                    </div>
+                    <h2
+                      className="max-w-[55ch] text-xl font-medium leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: qStemHtml }}
+                    />
                   </div>
                   <div className="shrink-0 space-y-1 text-right">
                     <div className="border border-primary bg-primary/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-primary">
@@ -272,14 +296,21 @@ function ReplayPage() {
                     </div>
                     {myAnswerHere && (myAnswerHere.atMs ?? Infinity) <= t ? (
                       <div className="font-mono text-[10px] uppercase tracking-widest">
-                        <span className={myAnswerHere.isCorrect ? "text-success" : "text-destructive"}>
+                        <span
+                          className={myAnswerHere.isCorrect ? "text-success" : "text-destructive"}
+                        >
                           {data.me.username}: {myAnswerHere.isCorrect ? "+4" : "−1"}
                         </span>
                         {oppAnswerHere && (oppAnswerHere.atMs ?? Infinity) <= t ? (
                           <>
                             <span className="text-muted-foreground/40"> / </span>
-                            <span className={oppAnswerHere.isCorrect ? "text-success" : "text-destructive"}>
-                              {data.opponent?.username ?? "Opp"}: {oppAnswerHere.isCorrect ? "+4" : "−1"}
+                            <span
+                              className={
+                                oppAnswerHere.isCorrect ? "text-success" : "text-destructive"
+                              }
+                            >
+                              {data.opponent?.username ?? "Opp"}:{" "}
+                              {oppAnswerHere.isCorrect ? "+4" : "−1"}
                             </span>
                           </>
                         ) : null}
@@ -288,7 +319,7 @@ function ReplayPage() {
                   </div>
                 </div>
                 <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {q.options.map((o) => {
+                  {qOptionsHtml.map((o) => {
                     const isCorrect = o.key === q.correct;
                     const isMine =
                       myAnswerHere?.choice === o.key && (myAnswerHere?.atMs ?? Infinity) <= t;
@@ -310,7 +341,7 @@ function ReplayPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <span className="mr-2 font-bold">{o.key}.</span>
-                            {o.text}
+                            <span dangerouslySetInnerHTML={{ __html: o.html }} />
                           </div>
                           {isCorrect ? (
                             <span className="shrink-0 rounded bg-primary/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-primary">
@@ -350,7 +381,9 @@ function ReplayPage() {
                   }`}
                 >
                   <span className="tabular-nums text-muted-foreground">{clock(e.atMs)}</span>
-                  <span>{e.side === "me" ? data.me.username : data.opponent?.username ?? "Opponent"}</span>
+                  <span>
+                    {e.side === "me" ? data.me.username : (data.opponent?.username ?? "Opponent")}
+                  </span>
                   <span>Q{e.index + 1}</span>
                   <span className={e.isCorrect ? "text-primary" : "text-destructive"}>
                     {e.isCorrect ? "CORRECT" : "WRONG"}

@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { getMatchState, getQuestionExplanations } from "@/lib/game.functions";
+import { renderLatex, wrapBareLatex } from "@/lib/latex";
 import { useSfx } from "@/hooks/useSfx";
-import katex from "katex";
 
 export const Route = createFileRoute("/_authenticated/review/$matchId")({
   component: ReviewPage,
@@ -17,28 +18,6 @@ export const Route = createFileRoute("/_authenticated/review/$matchId")({
   ),
 });
 
-function wrapBareLatex(text: string): string {
-  if (text.includes("$")) return text;
-  return `$${text}$`;
-}
-
-function renderLatex(text: string): string {
-  const withBreaks = text.replace(/\n/g, "<br/>");
-  return withBreaks.replace(/\$\$(.*?)\$\$/gs, (_match, tex: string) => {
-    try {
-      return katex.renderToString(tex, { displayMode: true, throwOnError: false });
-    } catch {
-      return tex;
-    }
-  }).replace(/\$(.*?)\$/g, (_match, tex: string) => {
-    try {
-      return katex.renderToString(tex, { displayMode: false, throwOnError: false });
-    } catch {
-      return tex;
-    }
-  });
-}
-
 function ReviewPage() {
   const { matchId } = Route.useParams();
   const stateFn = useServerFn(getMatchState);
@@ -47,7 +26,14 @@ function ReviewPage() {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [explanations, setExplanations] = useState<
-    { index: number; concepts: string[]; formulas: string[]; solution: string; whyWrong: Record<string, string> }[] | null
+    | {
+        index: number;
+        concepts: string[];
+        formulas: string[];
+        solution: string;
+        whyWrong: Record<string, string>;
+      }[]
+    | null
   >(null);
   const [loadingExplanations, setLoadingExplanations] = useState(false);
   const fetchedRef = useRef(false);
@@ -148,7 +134,11 @@ function ReviewPage() {
                   {data.opponent ? (
                     <>
                       <span className="text-primary">vs</span>
-                      <Avatar url={data.opponent.avatar_url} name={data.opponent.username} size={40} />
+                      <Avatar
+                        url={data.opponent.avatar_url}
+                        name={data.opponent.username}
+                        size={40}
+                      />
                       {data.opponent.username}
                     </>
                   ) : null}
@@ -226,9 +216,16 @@ function ReviewPage() {
           <div key={qr.index} className="animate-enter border border-border bg-surface/30 p-8">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-4">
-                <span className="font-mono text-xs uppercase text-primary">
-                  {qr.subject} / {qr.topic} / Q{qr.index + 1}
-                </span>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-mono text-xs uppercase text-primary">
+                    {qr.subject} / {qr.topic} / Q{qr.index + 1}
+                  </span>
+                  <ReportQuestionDialog
+                    questionId={qr.id}
+                    matchId={matchId}
+                    questionIndex={qr.index}
+                  />
+                </div>
                 <h2
                   className="max-w-[55ch] text-xl font-medium leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: renderLatex(qr.stem) }}
@@ -239,14 +236,31 @@ function ReviewPage() {
                   Correct: {qr.correctOption}
                 </div>
                 <div className="font-mono text-[10px] uppercase tracking-widest">
-                  <span className={qr.myCorrect ? "text-success" : qr.myMissed ? "text-muted-foreground" : "text-destructive"}>
+                  <span
+                    className={
+                      qr.myCorrect
+                        ? "text-success"
+                        : qr.myMissed
+                          ? "text-muted-foreground"
+                          : "text-destructive"
+                    }
+                  >
                     {data.me.username}: {qr.myMissed ? "0" : qr.myCorrect ? "+4" : "−1"}
                   </span>
                   {!data.isSolo ? (
                     <>
                       <span className="text-muted-foreground/40"> / </span>
-                      <span className={qr.oppCorrect ? "text-success" : qr.oppMissed ? "text-muted-foreground" : "text-destructive"}>
-                        {data.opponent?.username ?? "Opp"}: {qr.oppMissed ? "0" : qr.oppCorrect ? "+4" : "−1"}
+                      <span
+                        className={
+                          qr.oppCorrect
+                            ? "text-success"
+                            : qr.oppMissed
+                              ? "text-muted-foreground"
+                              : "text-destructive"
+                        }
+                      >
+                        {data.opponent?.username ?? "Opp"}:{" "}
+                        {qr.oppMissed ? "0" : qr.oppCorrect ? "+4" : "−1"}
                       </span>
                     </>
                   ) : null}
@@ -274,7 +288,9 @@ function ReviewPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div
-                        dangerouslySetInnerHTML={{ __html: `<span class="mr-2 font-bold">${o.key}.</span>${renderLatex(o.text)}` }}
+                        dangerouslySetInnerHTML={{
+                          __html: `<span class="mr-2 font-bold">${o.key}.</span>${renderLatex(o.text)}`,
+                        }}
                       />
                       {isCorrect ? (
                         <span className="shrink-0 rounded bg-success/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-success">
@@ -317,9 +333,20 @@ function ReviewPage() {
             <div className="flex flex-col items-center gap-6 py-8">
               <div className="relative">
                 <div className="ai-pulse-ring absolute inset-0 rounded-full bg-primary/20" />
-                <div className="ai-pulse-ring absolute inset-0 rounded-full bg-primary/10" style={{ animationDelay: "0.5s" }} />
+                <div
+                  className="ai-pulse-ring absolute inset-0 rounded-full bg-primary/10"
+                  style={{ animationDelay: "0.5s" }}
+                />
                 <div className="relative flex size-16 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-                  <svg className="size-8 text-primary ai-icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    className="size-8 text-primary ai-icon-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M12 2L9.5 8.5 3 12l6.5 3.5L12 22l2.5-6.5L21 12l-6.5-3.5Z" />
                     <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
                   </svg>
@@ -335,8 +362,14 @@ function ReviewPage() {
               </div>
               <div className="flex gap-1.5">
                 <span className="ai-dot size-2 rounded-full bg-primary" />
-                <span className="ai-dot size-2 rounded-full bg-primary" style={{ animationDelay: "0.2s" }} />
-                <span className="ai-dot size-2 rounded-full bg-primary" style={{ animationDelay: "0.4s" }} />
+                <span
+                  className="ai-dot size-2 rounded-full bg-primary"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <span
+                  className="ai-dot size-2 rounded-full bg-primary"
+                  style={{ animationDelay: "0.4s" }}
+                />
               </div>
             </div>
           </div>

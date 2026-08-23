@@ -8,6 +8,21 @@ export type Database = {
   };
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       match_answers: {
         Row: {
           answered_at: string;
@@ -192,6 +207,57 @@ export type Database = {
           topic?: string;
         };
         Relationships: [];
+      };
+      question_reports: {
+        Row: {
+          created_at: string;
+          details: string | null;
+          id: string;
+          match_id: string | null;
+          question_id: string;
+          question_index: number | null;
+          reason: string;
+          reported_by: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          details?: string | null;
+          id?: string;
+          match_id?: string | null;
+          question_id: string;
+          question_index?: number | null;
+          reason: string;
+          reported_by: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          details?: string | null;
+          id?: string;
+          match_id?: string | null;
+          question_id?: string;
+          question_index?: number | null;
+          reason?: string;
+          reported_by?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "question_reports_match_id_fkey";
+            columns: ["match_id"];
+            isOneToOne: false;
+            referencedRelation: "matches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "question_reports_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "questions";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {

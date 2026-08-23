@@ -1,16 +1,48 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAdmin } from "@/integrations/supabase/admin-middleware";
 import { z } from "zod";
+
+export const getAllQuestions = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async () => {
+    const { adminClient } = await import("./game.server");
+    const { data, error } = await adminClient()
+      .from("questions")
+      .select("id, subject, topic, stem, option_a, option_b, option_c, option_d")
+      .order("subject")
+      .order("topic");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const isAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { adminClient } = await import("./game.server");
+    const { data } = await adminClient()
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return !!data;
+  });
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { ensureProfileRow, rankTitle } = await import("./game.server");
+    const { adminClient, ensureProfileRow, rankTitle } = await import("./game.server");
     const profile = await ensureProfileRow(
       context.userId,
       (context.claims as { email?: string })?.email,
     );
-    return { ...profile, rank: rankTitle(profile.elo) };
+    const db = adminClient();
+    const { data: adminRow } = await db
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return { ...profile, rank: rankTitle(profile.elo), isAdmin: !!adminRow };
   });
 
 export const getLeaderboard = createServerFn({ method: "GET" }).handler(async () => {
@@ -145,6 +177,7 @@ export const getMatchReplay = createServerFn({ method: "POST" })
     const questions = qids.map((id, i) => {
       const q = qs?.find((x) => x.id === id);
       return {
+        id,
         index: i,
         subject: q?.subject ?? "—",
         topic: q?.topic ?? "—",
@@ -180,7 +213,9 @@ export const getMatchReplay = createServerFn({ method: "POST" })
     const myAnswers = events.filter((e) => e.side === "me");
     const oppAnswers = events.filter((e) => e.side === "opponent");
     const myMarks = jeeMarks(myAnswers.map((e) => ({ is_correct: e.isCorrect, choice: e.choice })));
-    const oppMarks = jeeMarks(oppAnswers.map((e) => ({ is_correct: e.isCorrect, choice: e.choice })));
+    const oppMarks = jeeMarks(
+      oppAnswers.map((e) => ({ is_correct: e.isCorrect, choice: e.choice })),
+    );
 
     return {
       matchId: match.id,
@@ -514,6 +549,7 @@ export const getMatchState = createServerFn({ method: "POST" })
 
     const currentIndex = round.index;
     let question: null | {
+      id: string;
       index: number;
       subject: string;
       topic: string;
@@ -532,6 +568,7 @@ export const getMatchState = createServerFn({ method: "POST" })
         .single();
       if (q) {
         question = {
+          id: qid,
           index: currentIndex,
           subject: q.subject,
           topic: q.topic,
@@ -570,6 +607,7 @@ export const getMatchState = createServerFn({ method: "POST" })
 
     // Result of the round that just closed (the one before the current one).
     let lastResult: {
+      id: string | null;
       index: number;
       mine: { choice: string | null; correct: boolean; missed: boolean };
       theirs: { choice: string | null; correct: boolean; missed: boolean } | null;
@@ -587,6 +625,7 @@ export const getMatchState = createServerFn({ method: "POST" })
         .eq("id", match.question_ids[prevIndex]!)
         .single();
       lastResult = {
+        id: match.question_ids[prevIndex] ?? null,
         index: prevIndex,
         mine: { choice: myA?.choice ?? null, correct: myA ? myA.is_correct : false, missed: !myA },
         theirs: opponentId
@@ -607,6 +646,7 @@ export const getMatchState = createServerFn({ method: "POST" })
 
     // Full question review for finished matches.
     let questionReview: {
+      id: string;
       index: number;
       subject: string;
       topic: string;
@@ -631,6 +671,7 @@ export const getMatchState = createServerFn({ method: "POST" })
         const myA = mine.find((r) => r.question_index === i);
         const oppA = theirs.find((r) => r.question_index === i);
         return {
+          id: q?.id ?? qid,
           index: i,
           subject: q?.subject ?? "—",
           topic: q?.topic ?? "—",
@@ -809,9 +850,7 @@ export const getUserStats = createServerFn({ method: "GET" })
 
     const { data: matches } = await db
       .from("matches")
-      .select(
-        "status, is_ranked, is_bot_match, player1_id, player2_id, winner_id, subject_filter",
-      )
+      .select("status, is_ranked, is_bot_match, player1_id, player2_id, winner_id, subject_filter")
       .or(`player1_id.eq.${uid},player2_id.eq.${uid}`)
       .eq("status", "finished");
 
@@ -1032,4 +1071,168 @@ Return ONLY a valid JSON array containing one object per question. No markdown f
         })),
       };
     }
+  });
+
+export const REPORT_REASONS = [
+  "missing_options",
+  "incorrect_option",
+  "wrong_answer",
+  "missing_info",
+  "rendering_issue",
+  "other",
+] as const;
+
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const submitQuestionReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        questionId: z.string().uuid(),
+        matchId: z.string().uuid().nullable().optional(),
+        questionIndex: z.number().int().min(0).max(49).nullable().optional(),
+        reason: z.enum(REPORT_REASONS),
+        details: z.string().trim().max(1000).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { adminClient } = await import("./game.server");
+    const db = adminClient();
+    const uid = context.userId;
+
+    // The question must actually exist.
+    const { data: q } = await db
+      .from("questions")
+      .select("id")
+      .eq("id", data.questionId)
+      .maybeSingle();
+    if (!q) return { ok: false as const, reason: "Question not found" };
+
+    // If a match is referenced, it must be one of the reporter's own matches.
+    let matchId: string | null = null;
+    if (data.matchId) {
+      const { data: m } = await db
+        .from("matches")
+        .select("id")
+        .eq("id", data.matchId)
+        .or(`player1_id.eq.${uid},player2_id.eq.${uid}`)
+        .maybeSingle();
+      matchId = m?.id ?? null;
+    }
+
+    // Flood cap: at most 10 reports per user per rolling 24h.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await db
+      .from("question_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("reported_by", uid)
+      .gte("created_at", since);
+    if ((count ?? 0) >= 10) {
+      return {
+        ok: false as const,
+        reason: "Daily report limit reached — please try again tomorrow",
+      };
+    }
+
+    const { error } = await db.from("question_reports").insert({
+      question_id: data.questionId,
+      match_id: matchId,
+      question_index: data.questionIndex ?? null,
+      reported_by: uid, // always the verified caller — never client-supplied
+      reason: data.reason,
+      details: data.details ? data.details : null,
+    });
+    if (error) {
+      if (error.code === "23505") {
+        return {
+          ok: false as const,
+          duplicate: true as const,
+          reason: "You have already reported this question",
+        };
+      }
+      throw new Error(error.message);
+    }
+    return { ok: true as const };
+  });
+
+export type QuestionReportRow = {
+  id: string;
+  question_id: string;
+  match_id: string | null;
+  question_index: number | null;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+  question: {
+    subject: string;
+    topic: string;
+    stem: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_option: string;
+  } | null;
+  reporterUsername: string | null;
+};
+
+export const getQuestionReports = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async () => {
+    const { adminClient } = await import("./game.server");
+    const db = adminClient();
+
+    const { data: reports, error } = await db
+      .from("question_reports")
+      .select("*")
+      .order("status", { ascending: false }) // open before resolved
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const rows = reports ?? [];
+
+    const qids = Array.from(new Set(rows.map((r) => r.question_id)));
+    const uids = Array.from(new Set(rows.map((r) => r.reported_by)));
+
+    const { data: qs } = qids.length
+      ? await db
+          .from("questions")
+          .select(
+            "id, subject, topic, stem, option_a, option_b, option_c, option_d, correct_option",
+          )
+          .in("id", qids)
+      : { data: [] };
+    const { data: ps } = uids.length
+      ? await db.from("profiles").select("id, username").in("id", uids)
+      : { data: [] };
+
+    return rows.map((r): QuestionReportRow => ({
+      id: r.id,
+      question_id: r.question_id,
+      match_id: r.match_id,
+      question_index: r.question_index,
+      reason: r.reason,
+      details: r.details,
+      status: r.status,
+      created_at: r.created_at,
+      question: qs?.find((q) => q.id === r.question_id) ?? null,
+      reporterUsername: ps?.find((p) => p.id === r.reported_by)?.username ?? null,
+    }));
+  });
+
+export const setReportStatus = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((d) =>
+    z.object({ reportId: z.string().uuid(), status: z.enum(["open", "resolved"]) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { adminClient } = await import("./game.server");
+    const { error } = await adminClient()
+      .from("question_reports")
+      .update({ status: data.status })
+      .eq("id", data.reportId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });

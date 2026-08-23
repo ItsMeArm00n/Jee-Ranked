@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { getMatchState, submitAnswer, forfeitMatch, confirmActive } from "@/lib/game.functions";
+import { renderLatex } from "@/lib/latex";
 import { useSfx } from "@/hooks/useSfx";
 
 export const Route = createFileRoute("/_authenticated/match/$matchId")({
@@ -227,6 +229,29 @@ function MatchPage() {
   const myPct = (data.me.answered / total) * 100;
   const oppPct = data.opponent ? (data.opponent.answered / total) * 100 : 0;
 
+  const stemHtml = useMemo(
+    () => (data.question ? renderLatex(data.question.stem) : ""),
+    [data.question?.stem],
+  );
+  const optionsHtml = useMemo(
+    () =>
+      data.question
+        ? data.question.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
+        : [],
+    [data.question?.options],
+  );
+  const resultStemHtml = useMemo(
+    () => (data.lastResult?.stem ? renderLatex(data.lastResult.stem) : ""),
+    [data.lastResult?.stem],
+  );
+  const resultOptionsHtml = useMemo(
+    () =>
+      data.lastResult
+        ? data.lastResult.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
+        : [],
+    [data.lastResult?.options],
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -366,20 +391,20 @@ function MatchPage() {
                 >
                   Queue again
                 </button>
-              <Link
-                to="/replay/$matchId"
-                params={{ matchId }}
-                onMouseEnter={() => play("hover")}
-                className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
-              >
+                <Link
+                  to="/replay/$matchId"
+                  params={{ matchId }}
+                  onMouseEnter={() => play("hover")}
+                  className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
+                >
                   Watch replay
                 </Link>
-              <Link
-                to="/review/$matchId"
-                params={{ matchId }}
-                onMouseEnter={() => play("hover")}
-                className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
-              >
+                <Link
+                  to="/review/$matchId"
+                  params={{ matchId }}
+                  onMouseEnter={() => play("hover")}
+                  className="cta-sweep border border-primary px-8 py-3 font-mono text-sm uppercase tracking-widest text-primary"
+                >
                   Review questions
                 </Link>
                 <Link
@@ -397,19 +422,27 @@ function MatchPage() {
               {data.question ? (
                 <>
                   <div key={data.question.index} className="space-y-4">
-                    <span className="ticker-enter block font-mono text-xs uppercase text-primary">
-                      {data.question.subject} / {data.question.topic} / Q{data.question.index + 1}
-                    </span>
-                    <h1 className="mask-reveal max-w-[50ch] text-2xl font-medium leading-relaxed">
-                      <span>{data.question.stem}</span>
-                    </h1>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="ticker-enter block font-mono text-xs uppercase text-primary">
+                        {data.question.subject} / {data.question.topic} / Q{data.question.index + 1}
+                      </span>
+                      <ReportQuestionDialog
+                        questionId={data.question.id}
+                        matchId={matchId}
+                        questionIndex={data.question.index}
+                      />
+                    </div>
+                    <h1
+                      className="mask-reveal max-w-[50ch] text-2xl font-medium leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: stemHtml }}
+                    />
                   </div>
 
                   <div
                     key={`opts-${data.question.index}`}
                     className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                   >
-                    {data.question.options.map((opt, i) => (
+                    {optionsHtml.map((opt, i) => (
                       <button
                         key={opt.key}
                         disabled={pending !== null || data.waitingForOpponent}
@@ -428,7 +461,7 @@ function MatchPage() {
                         <span className="mr-3 inline-block text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary">
                           {opt.key}.
                         </span>
-                        {opt.text}
+                        <span dangerouslySetInnerHTML={{ __html: opt.html }} />
                       </button>
                     ))}
                   </div>
@@ -532,12 +565,15 @@ function MatchPage() {
               Round result · Q{data.lastResult.index + 1}
             </div>
 
-            {data.lastResult.stem ? (
-              <p className="mt-4 text-sm leading-relaxed">{data.lastResult.stem}</p>
+            {resultStemHtml ? (
+              <p
+                className="mt-4 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: resultStemHtml }}
+              />
             ) : null}
 
             <div className="mt-6 space-y-2">
-              {data.lastResult.options.map((o) => {
+              {resultOptionsHtml.map((o) => {
                 const isCorrect = o.key === data.lastResult!.correctOption;
                 const isMine = o.key === data.lastResult!.mine.choice;
                 const isTheirs = data.lastResult!.theirs
@@ -555,7 +591,7 @@ function MatchPage() {
                     }`}
                   >
                     <span className="mr-2 font-bold">{o.key}.</span>
-                    {o.text}
+                    <span dangerouslySetInnerHTML={{ __html: o.html }} />
                     {isMine && !data.lastResult!.mine.missed ? (
                       <span className="ml-2 text-[10px] uppercase">(your pick)</span>
                     ) : null}
