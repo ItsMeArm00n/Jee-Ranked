@@ -31,6 +31,7 @@ function MatchPage() {
   const [remaining, setRemaining] = useState(0);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
   const [afkLeft, setAfkLeft] = useState(0);
+  const [reportHint, setReportHint] = useState(true);
   const { play } = useSfx();
   const lastOpp = useRef(0);
   const endedFor = useRef<string | null>(null);
@@ -133,6 +134,15 @@ function MatchPage() {
     lastQ.current = idx;
     setSelectedChoice(null);
   }, [data?.question?.index, play]);
+
+  // Coach-mark: point at the report button when the match's first question
+  // appears; auto-dismiss after a few seconds (or on click).
+  const showReportHint = reportHint && !!data?.question;
+  useEffect(() => {
+    if (!showReportHint) return;
+    const t = setTimeout(() => setReportHint(false), 8000);
+    return () => clearTimeout(t);
+  }, [showReportHint]);
 
   // Correct-answer streak.
   const streak = useRef(0);
@@ -430,6 +440,8 @@ function MatchPage() {
                         questionId={data.question.id}
                         matchId={matchId}
                         questionIndex={data.question.index}
+                        hint={showReportHint}
+                        onHintDismiss={() => setReportHint(false)}
                       />
                     </div>
                     <h1

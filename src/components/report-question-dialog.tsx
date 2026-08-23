@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Flag } from "lucide-react";
+import { Check, Flag } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -26,10 +26,15 @@ export function ReportQuestionDialog({
   questionId,
   matchId,
   questionIndex,
+  hint = false,
+  onHintDismiss,
 }: {
   questionId: string;
   matchId?: string;
   questionIndex?: number;
+  /** Show a coach-mark bubble pointing at the button (e.g. on match launch). */
+  hint?: boolean;
+  onHintDismiss?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
@@ -72,23 +77,46 @@ export function ReportQuestionDialog({
 
   return (
     <>
-      <button
-        type="button"
-        disabled={reported}
-        aria-label={reported ? "Question reported" : "Report this question"}
-        title={reported ? "You reported this question" : "Report an issue with this question"}
-        onMouseEnter={(e) => !reported && e.currentTarget.classList.add("text-destructive")}
-        onMouseLeave={(e) => !reported && e.currentTarget.classList.remove("text-destructive")}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        className={`shrink-0 border border-border p-2 font-mono uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-destructive ${
-          reported ? "cursor-default text-muted-foreground/40" : "text-muted-foreground"
-        }`}
-      >
-        <Flag className="size-3.5" />
-      </button>
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          disabled={reported}
+          aria-label={reported ? "Question reported" : "Report this question"}
+          title={reported ? "You reported this question" : "Report an issue with this question"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onHintDismiss?.();
+            setOpen(true);
+          }}
+          className={`flex items-center gap-2 border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 ${
+            reported
+              ? "cursor-default border-border/60 bg-transparent text-muted-foreground/40"
+              : "border-destructive/50 bg-destructive/5 text-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+          }`}
+        >
+          {reported ? <Check className="size-3.5" /> : <Flag className="size-3.5" />}
+          {reported ? "Reported" : "Report"}
+        </button>
+
+        {hint && !reported ? (
+          <button
+            type="button"
+            onClick={onHintDismiss}
+            aria-label="Dismiss hint"
+            className="absolute right-0 top-full z-20 mt-3 block w-max max-w-[230px] cursor-pointer border border-primary bg-background p-3 pr-4 text-left font-mono text-[11px] normal-case leading-snug tracking-wide text-primary shadow-lg shadow-primary/10 transition-transform duration-200 hover:scale-[1.02]"
+          >
+            <span
+              aria-hidden
+              className="absolute -top-[5px] right-7 block size-2.5 rotate-45 animate-pulse border-l border-t border-primary bg-background"
+            />
+            Something wrong with the questions?
+            <span className="mt-1 flex items-center gap-1 font-bold">
+              Report it
+              <Flag className="size-3" />
+            </span>
+          </button>
+        ) : null}
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="border border-border bg-background font-mono sm:max-w-lg">

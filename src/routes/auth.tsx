@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/useSession";
 import { useSfx } from "@/hooks/useSfx";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -13,10 +12,14 @@ export const Route = createFileRoute("/auth")({
       { title: "Sign in — JEE Ranked 1v1 Duels" },
       {
         name: "description",
-        content: "Create your JEE Ranked account to queue for live 1v1 JEE question duels and climb the ELO ladder.",
+        content:
+          "Create your JEE Ranked account to queue for live 1v1 JEE question duels and climb the ELO ladder.",
       },
       { property: "og:title", content: "Sign in — JEE Ranked" },
-      { property: "og:description", content: "Join the arena. Race a real opponent through JEE questions." },
+      {
+        property: "og:description",
+        content: "Join the arena. Race a real opponent through JEE questions.",
+      },
     ],
   }),
   component: AuthPage,
@@ -63,13 +66,18 @@ function AuthPage() {
   }
 
   async function google() {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) {
-      toast.error("Google sign-in failed");
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/play` },
+      });
+      if (error) throw error;
+      // Browser redirects to Google's consent screen; the session is
+      // picked up from the URL when Supabase redirects back.
+    } catch {
+      play("error");
+      toast.error("Google sign-in failed — try again in a moment");
     }
-    if (result.redirected) return;
-    navigate({ to: "/play" });
   }
 
   return (
@@ -83,12 +91,17 @@ function AuthPage() {
             </span>
           </h1>
           <p className="ticker-enter mt-4 font-mono text-xs uppercase tracking-widest text-muted-foreground [animation-delay:300ms]">
-            {mode === "signin" ? "Sign in to queue for a duel" : "Create an account to start at 1200 ELO"}
+            {mode === "signin"
+              ? "Sign in to queue for a duel"
+              : "Create an account to start at 1200 ELO"}
           </p>
         </div>
 
         <button
-          onClick={() => { play("click"); google(); }}
+          onClick={() => {
+            play("click");
+            google();
+          }}
           onMouseEnter={() => play("hover")}
           className="ticker-enter border border-border bg-surface px-6 py-4 font-mono text-sm uppercase tracking-widest transition-all duration-300 [animation-delay:400ms] hover:-translate-y-1 hover:border-primary hover:text-primary hover:shadow-[0_0_24px_-6px_var(--color-primary)]"
         >
@@ -130,15 +143,21 @@ function AuthPage() {
         </form>
 
         <button
-          onClick={() => { play("click"); setMode(mode === "signin" ? "signup" : "signin"); }}
+          onClick={() => {
+            play("click");
+            setMode(mode === "signin" ? "signup" : "signin");
+          }}
           onMouseEnter={() => play("hover")}
           className="link-underline self-start font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
         >
           {mode === "signin" ? "No account? Register" : "Already ranked? Sign in"}
         </button>
 
-
-        <Link to="/" onMouseEnter={() => play("hover")} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          onMouseEnter={() => play("hover")}
+          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
           ← Back to lobby
         </Link>
       </main>
