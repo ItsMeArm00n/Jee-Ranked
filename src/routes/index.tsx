@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { AdminTag } from "@/components/AdminTag";
 import { useSession } from "@/hooks/useSession";
 import { useSfx } from "@/hooks/useSfx";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useTilt } from "@/hooks/useTilt";
+import { useCountUpOnView } from "@/hooks/useCountUp";
 import { getGlobalStats, getLeaderboard, getMyProfile } from "@/lib/game.functions";
 
 export const Route = createFileRoute("/")({
@@ -111,6 +114,16 @@ function Home() {
   const faqReveal = useScrollReveal();
   const ctaReveal = useScrollReveal();
 
+  const standingTilt = useTilt(4);
+
+  /** Mouse-tracked spotlight coordinates for flat cards. */
+  function trackSpotlight(e: React.MouseEvent<HTMLElement>) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    el.style.setProperty("--my", `${((e.clientY - rect.top) / rect.height) * 100}%`);
+  }
+
   const marquee = [
     "SEASON 01 // RESONANCE ARENA",
     "10 QUESTIONS",
@@ -127,7 +140,8 @@ function Home() {
       {/* HERO */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="arena-grid pointer-events-none absolute inset-0" />
-        <div className="pointer-events-none absolute -right-40 -top-40 size-[36rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="aurora-blob pointer-events-none absolute -right-40 -top-40 size-[36rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="aurora-blob pointer-events-none absolute -left-52 top-1/3 size-[30rem] rounded-full bg-primary/5 blur-3xl [animation-delay:-7s]" />
         <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-14 px-6 py-20 lg:grid-cols-12 lg:py-28">
           <div className="space-y-8 lg:col-span-7">
             <div className="animate-enter inline-flex items-center gap-3 border border-border bg-surface/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
@@ -135,7 +149,7 @@ function Home() {
               Ranked ladder is live
             </div>
 
-            <h1 className="font-display text-[clamp(3.5rem,10vw,8rem)] uppercase italic leading-[0.82] tracking-tighter">
+            <h1 className="group cursor-default font-display text-[clamp(3.5rem,10vw,8rem)] uppercase italic leading-[0.82] tracking-tighter">
               <span className="mask-reveal block">
                 <span>Duel for</span>
               </span>
@@ -174,43 +188,52 @@ function Home() {
 
           {/* Standing card */}
           <div className="lg:col-span-5">
-            <div className="wipe-enter relative border-l-4 border-primary bg-surface p-8 [animation-delay:150ms]">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Current standing
-              </span>
-              <div className="mt-4 flex items-end justify-between">
-                <div>
-                  <h2 className="font-display text-6xl uppercase leading-none tracking-tight">
-                    {profile.data?.rank ?? (session ? "…" : "Unranked")}
-                  </h2>
-                  <p className="mt-2 font-mono text-xl text-primary">
-                    {profile.data
-                      ? `${profile.data.elo.toLocaleString()} ELO`
-                      : "1,200 ELO on signup"}
-                  </p>
-                </div>
-                <div className="text-right font-mono text-xs text-muted-foreground">
-                  {profile.data ? `${profile.data.wins}W / ${profile.data.losses}L` : "0W / 0L"}
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-3 border-t border-border pt-6 font-mono">
-                {[
-                  { k: "Players", v: stats.data?.players ?? 0 },
-                  { k: "Duels", v: stats.data?.duels ?? 0 },
-                  { k: "Questions", v: stats.data?.questions ?? 0 },
-                ].map((s, i) => (
-                  <div
-                    key={s.k}
-                    style={{ animationDelay: `${300 + i * 90}ms` }}
-                    className="ticker-enter"
-                  >
-                    <div className="font-display text-4xl tabular-nums">{s.v}</div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {s.k}
-                    </div>
+            <div className="wipe-enter relative [animation-delay:150ms]">
+              <div
+                ref={standingTilt.ref}
+                onMouseMove={standingTilt.onMouseMove}
+                onMouseEnter={standingTilt.onMouseEnter}
+                onMouseLeave={standingTilt.onMouseLeave}
+                className="spotlight-card relative border border-border bg-surface p-8 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]"
+              >
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Current standing
+                </span>
+                <div className="mt-4 flex items-end justify-between">
+                  <div>
+                    <h2 className="font-display text-6xl uppercase leading-none tracking-tight">
+                      {profile.data?.rank ?? (session ? "…" : "Unranked")}
+                    </h2>
+                    <p className="mt-2 font-mono text-xl text-primary">
+                      {profile.data
+                        ? `${profile.data.elo.toLocaleString()} ELO`
+                        : "1,200 ELO on signup"}
+                    </p>
                   </div>
-                ))}
+                  <div className="text-right font-mono text-xs text-muted-foreground">
+                    {profile.data ? `${profile.data.wins}W / ${profile.data.losses}L` : "0W / 0L"}
+                  </div>
+                </div>
+
+                <div className="shimmer-line mt-8" />
+                <div className="mt-6 grid grid-cols-3 gap-x-2 font-mono">
+                  {[
+                    { k: "Players", v: stats.data?.players ?? 0 },
+                    { k: "Duels", v: stats.data?.duels ?? 0 },
+                    { k: "Questions", v: stats.data?.questions ?? 0 },
+                  ].map((s, i) => (
+                    <div
+                      key={s.k}
+                      style={{ animationDelay: `${300 + i * 90}ms` }}
+                      className="ticker-enter"
+                    >
+                      <CountStat value={s.v} />
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {s.k}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -228,7 +251,7 @@ function Home() {
         </div>
 
         {/* MARQUEE */}
-        <div className="relative overflow-hidden border-y border-border bg-surface/40 py-3">
+        <div className="marquee-mask relative overflow-hidden border-y border-border bg-surface/40 py-3">
           <div className="marquee flex w-max gap-10 font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
             {[...marquee, ...marquee, ...marquee].map((m, i) => (
               <span key={i} className="flex items-center gap-10">
@@ -242,8 +265,14 @@ function Home() {
 
       <main className="mx-auto max-w-7xl space-y-28 px-6 py-24">
         {/* LEADERBOARD + TIERS */}
-        <section ref={leaderboardReveal.ref} className={`grid grid-cols-1 gap-8 lg:grid-cols-12 ${leaderboardReveal.visible ? "fade-up" : "opacity-0"}`}>
-          <div className="wipe-enter border border-border bg-surface/50 p-8 transition-all duration-300 hover:border-primary/40 lg:col-span-8">
+        <section
+          ref={leaderboardReveal.ref}
+          className={`grid grid-cols-1 gap-8 lg:grid-cols-12 ${leaderboardReveal.visible ? "fade-up" : "opacity-0"}`}
+        >
+          <div
+            onMouseMove={trackSpotlight}
+            className="wipe-enter spotlight-card border border-border bg-surface/50 p-8 transition-colors duration-300 hover:border-primary/40 lg:col-span-8"
+          >
             <div className="mb-6 flex items-end justify-between">
               <h2 className="font-display text-3xl uppercase italic tracking-tighter">
                 Global leaderboard
@@ -279,10 +308,13 @@ function Home() {
                   >
                     <div className="flex items-center gap-4">
                       <span className={i === 0 ? "text-primary" : ""}>
-                        {String(i + 1).padStart(2, "0")}
+                        <span className={`inline-block ${i === 0 ? "medal-glow px-1" : ""}`}>
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
                       </span>
                       <Avatar url={p.avatar_url} name={p.username} size={26} />
                       <span>{p.username.toUpperCase()}</span>
+                      {p.is_admin ? <AdminTag /> : null}
                       <span className="hidden text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
                         {p.rank}
                       </span>
@@ -322,7 +354,11 @@ function Home() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section ref={howReveal.ref} id="how" className={`scroll-mt-24 border-t border-border pt-16 ${howReveal.visible ? "fade-up" : "opacity-0"}`}>
+        <section
+          ref={howReveal.ref}
+          id="how"
+          className={`scroll-mt-24 border-t border-border pt-16 ${howReveal.visible ? "fade-up" : "opacity-0"}`}
+        >
           <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">
             Three minutes to your <span className="text-primary">first rating</span>
           </h2>
@@ -361,7 +397,10 @@ function Home() {
         </section>
 
         {/* SUBJECTS */}
-        <section ref={subjectsReveal.ref} className={`border-t border-border pt-16 ${subjectsReveal.visible ? "fade-up" : "opacity-0"}`}>
+        <section
+          ref={subjectsReveal.ref}
+          className={`border-t border-border pt-16 ${subjectsReveal.visible ? "fade-up" : "opacity-0"}`}
+        >
           <div className="flex items-end justify-between">
             <h2 className="font-display text-5xl uppercase italic tracking-tighter sm:text-6xl">
               The paper
@@ -375,24 +414,19 @@ function Home() {
               <article
                 key={s.code}
                 style={{ animationDelay: `${i * 110}ms` }}
-                className="tilt-card ticker-enter border border-border bg-surface/40 p-8"
+                className="ticker-enter"
               >
-                <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">
-                  {s.code}
-                </div>
-                <h3 className="mt-4 font-display text-4xl uppercase italic tracking-tighter">
-                  {s.name}
-                </h3>
-                <p className="mt-4 font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
-                  {s.blurb}
-                </p>
+                <TiltSubject subject={s} />
               </article>
             ))}
           </div>
         </section>
 
         {/* FAQ */}
-        <section ref={faqReveal.ref} className={`grid grid-cols-1 gap-10 border-t border-border pt-16 lg:grid-cols-12 ${faqReveal.visible ? "fade-up" : "opacity-0"}`}>
+        <section
+          ref={faqReveal.ref}
+          className={`grid grid-cols-1 gap-10 border-t border-border pt-16 lg:grid-cols-12 ${faqReveal.visible ? "fade-up" : "opacity-0"}`}
+        >
           <h2 className="font-display text-5xl uppercase italic tracking-tighter lg:col-span-4">
             Arena rules
           </h2>
@@ -405,24 +439,31 @@ function Home() {
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between font-mono text-xs uppercase tracking-widest transition-colors duration-300 hover:text-primary">
                   {f.q}
-                  <span className="font-display text-2xl transition-transform duration-300 group-open:rotate-45">
-                    +
-                  </span>
+                  <span className="faq-chevron font-display text-2xl group-open:rotate-45">+</span>
                 </summary>
-                <p className="mt-4 max-w-2xl font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
-                  {f.a}
-                </p>
+                <div className="faq-body">
+                  <div>
+                    <p className="faq-answer mt-4 max-w-2xl font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
+                      {f.a}
+                    </p>
+                  </div>
+                </div>
               </details>
             ))}
           </div>
         </section>
 
         {/* CLOSING CTA */}
-        <section ref={ctaReveal.ref} className={`relative overflow-hidden border border-border bg-surface/50 p-12 text-center sm:p-20 ${ctaReveal.visible ? "fade-up" : "opacity-0"}`}>
+        <section
+          ref={ctaReveal.ref}
+          className={`relative overflow-hidden border border-border p-12 text-center sm:p-20 ${ctaReveal.visible ? "fade-up" : "opacity-0"}`}
+        >
+          <div className="conic-border-surface pointer-events-none absolute inset-0" />
+          <div className="pointer-events-none absolute inset-0 bg-background/85" />
           <div className="arena-grid pointer-events-none absolute inset-0 opacity-60" />
           <div className="relative space-y-8">
             <h2 className="font-display text-[clamp(2.5rem,7vw,5.5rem)] uppercase italic leading-none tracking-tighter">
-              Someone is <span className="text-primary">already queued</span>
+              Someone is <span className="text-glow text-primary">already queued</span>
             </h2>
             <p className="mx-auto max-w-lg font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Ten questions decide who moves up the ladder tonight.
@@ -431,13 +472,47 @@ function Home() {
               to={session ? "/play" : "/auth"}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="cta-sweep inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
+              className="cta-sweep glow-pulse inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
             >
               Enter the arena
             </Link>
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+/** Stat number that counts up from zero when scrolled into view. */
+function CountStat({ value }: { value: number }) {
+  const { ref, value: shown } = useCountUpOnView<HTMLDivElement>(value);
+  return (
+    <div ref={ref} className="font-display text-4xl tabular-nums">
+      {shown.toLocaleString()}
+    </div>
+  );
+}
+
+/** Subject card with cursor-following 3D tilt + spotlight. */
+function TiltSubject({ subject }: { subject: (typeof SUBJECTS)[number] }) {
+  const tilt = useTilt(8);
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseEnter={tilt.onMouseEnter}
+      onMouseLeave={tilt.onMouseLeave}
+      className="spotlight-card group h-full border border-border bg-surface/40 p-8 [transform-style:preserve-3d]"
+    >
+      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary transition-transform duration-300 [transform:translateZ(30px)]">
+        {subject.code}
+      </div>
+      <h3 className="mt-4 font-display text-4xl uppercase italic tracking-tighter transition-transform duration-300 group-hover:text-primary [transform:translateZ(50px)]">
+        {subject.name}
+      </h3>
+      <p className="mt-4 font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground [transform:translateZ(20px)]">
+        {subject.blurb}
+      </p>
     </div>
   );
 }

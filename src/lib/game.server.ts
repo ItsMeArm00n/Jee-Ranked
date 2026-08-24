@@ -34,14 +34,18 @@ export function rankTitle(elo: number) {
   return "ROOKIE";
 }
 
+/** Set of admin user ids — safe to expose as a boolean flag, nothing else. */
+export async function fetchAdminIds(db: ReturnType<typeof adminClient>): Promise<Set<string>> {
+  const { data } = await db.from("admins").select("user_id");
+  return new Set((data ?? []).map((r) => r.user_id as string));
+}
+
 export const CORRECT_MARKS = 4;
 export const WRONG_MARKS = -1;
 export const UNANSWERED_MARKS = 0;
 
 /** JEE-style marks: +4 correct, −1 wrong, 0 unanswered. */
-export function jeeMarks(
-  answers: { is_correct: boolean; choice: string | null }[],
-): number {
+export function jeeMarks(answers: { is_correct: boolean; choice: string | null }[]): number {
   return answers.reduce((sum, a) => {
     if (a.choice === null) return sum + UNANSWERED_MARKS;
     return sum + (a.is_correct ? CORRECT_MARKS : WRONG_MARKS);

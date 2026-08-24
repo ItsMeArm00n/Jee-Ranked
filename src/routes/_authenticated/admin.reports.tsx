@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import {
+  getAdminStats,
   getQuestionReports,
   isAdmin,
   setReportStatus,
@@ -140,6 +141,42 @@ function ReportCard({
   );
 }
 
+function StatsStrip() {
+  const statsFn = useServerFn(getAdminStats);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: () => statsFn({}),
+  });
+
+  const cells = [
+    { label: "DAU · 24h", value: stats?.dau },
+    { label: "WAU · 7d", value: stats?.wau },
+    { label: "MAU · month", value: stats?.mau, accent: true },
+    { label: "Duels / month", value: stats?.duelsMonth },
+    { label: "Duels total", value: stats?.duelsTotal },
+    { label: "New players / month", value: stats?.newPlayersMonth },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-px border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
+      {cells.map((c) => (
+        <div key={c.label} className="bg-surface/30 px-4 py-5">
+          <div
+            className={`font-display text-3xl tabular-nums ${
+              isLoading ? "animate-pulse text-muted-foreground/40" : c.accent ? "text-primary" : ""
+            }`}
+          >
+            {c.value === undefined ? "—" : c.value.toLocaleString()}
+          </div>
+          <div className="mt-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            {c.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminReportsPage() {
   const reportsFn = useServerFn(getQuestionReports);
   const setStatusFn = useServerFn(setReportStatus);
@@ -181,6 +218,8 @@ function AdminReportsPage() {
             {openCount > 0 ? <span className="text-destructive">({openCount})</span> : null}
           </h1>
         </div>
+
+        <StatsStrip />
 
         <div className="flex items-center gap-2">
           {FILTERS.map((f) => (

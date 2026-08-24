@@ -252,12 +252,12 @@ function PlayPage() {
           </div>
 
           {/* Subject picker */}
-          <div className="w-full max-w-md space-y-3 [animation-delay:100ms]">
+          <div className="ticker-enter w-full max-w-md space-y-3 [animation-delay:150ms]">
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Subject
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {subjects.map((s) => (
+              {subjects.map((s, i) => (
                 <button
                   key={s.value}
                   onClick={() => {
@@ -266,9 +266,10 @@ function PlayPage() {
                     if (s.value !== "All" && playMode === "random") setPlayMode("solo");
                   }}
                   onMouseEnter={() => play("hover")}
-                  className={`border p-4 font-mono text-sm uppercase tracking-widest transition-all duration-400 hover:-translate-y-0.5 ${
+                  style={{ animationDelay: `${200 + i * 70}ms` }}
+                  className={`press-pop border p-4 font-mono text-sm uppercase tracking-widest hover:-translate-y-0.5 ${
                     subject === s.value
-                      ? "border-primary bg-primary/10 text-primary shadow-[0_0_20px_-6px_var(--color-primary)]"
+                      ? "pop-select border-primary bg-primary/10 text-primary shadow-[0_0_20px_-6px_var(--color-primary)]"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
@@ -279,7 +280,7 @@ function PlayPage() {
           </div>
 
           {/* Play mode picker */}
-          <div className="w-full max-w-md space-y-3 [animation-delay:200ms]">
+          <div className="ticker-enter w-full max-w-md space-y-3 [animation-delay:350ms]">
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Opponent
             </div>
@@ -296,16 +297,16 @@ function PlayPage() {
                     }}
                     onMouseEnter={() => play("hover")}
                     disabled={disabled}
-                    className={`border p-4 text-left transition-all duration-300 ${
+                    className={`press-pop border p-4 text-left ${
                       disabled
                         ? "cursor-not-allowed border-border/40 opacity-40"
                         : playMode === m.value
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+                          ? "pop-select border-primary bg-primary/10 shadow-[0_0_20px_-6px_var(--color-primary)]"
+                          : "border-border hover:-translate-y-0.5 hover:border-primary/50"
                     }`}
                   >
                     <div
-                      className={`font-mono text-sm uppercase tracking-widest ${playMode === m.value && !disabled ? "text-primary" : ""}`}
+                      className={`font-mono text-sm uppercase tracking-widest transition-colors duration-300 ${playMode === m.value && !disabled ? "text-primary" : ""}`}
                     >
                       {m.label}
                     </div>
@@ -320,12 +321,18 @@ function PlayPage() {
 
           {/* Time per question — solo only */}
           {playMode === "solo" && (
-            <div className="w-full max-w-md space-y-3 [animation-delay:300ms]">
+            <div
+              className="slide-left w-full max-w-md space-y-3"
+              style={{ animation: "fade-up 0.5s var(--ease-out-expo) both" }}
+            >
               <div className="flex items-center justify-between">
                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                   Time per question
                 </div>
-                <div className="font-mono text-sm tabular-nums text-primary">
+                <div
+                  key={secondsPerQuestion}
+                  className="counter-enter font-mono text-sm tabular-nums text-primary"
+                >
                   {Math.floor(secondsPerQuestion / 60)}:
                   {String(secondsPerQuestion % 60).padStart(2, "0")}
                 </div>
@@ -337,7 +344,7 @@ function PlayPage() {
                 step={15}
                 value={secondsPerQuestion}
                 onChange={(e) => setSecondsPerQuestion(Number(e.target.value))}
-                className="w-full accent-primary"
+                className="w-full accent-primary transition-all duration-300 hover:brightness-125"
               />
               <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
                 <span>0:30</span>
@@ -347,12 +354,12 @@ function PlayPage() {
           )}
 
           {/* Actions */}
-          <div className="flex w-full max-w-md gap-4 [animation-delay:400ms]">
+          <div className="ticker-enter flex w-full max-w-md gap-4 [animation-delay:450ms]">
             <button
               onClick={abort}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="flex-1 border border-border px-6 py-3 font-mono text-sm uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+              className="press-pop flex-1 border border-border px-6 py-3 font-mono text-sm uppercase tracking-widest hover:-translate-y-0.5 hover:border-primary hover:text-primary"
             >
               Back
             </button>
@@ -360,7 +367,7 @@ function PlayPage() {
               onClick={startUnranked}
               onMouseEnter={() => play("hover")}
               onFocus={() => play("hover")}
-              className="cta-sweep flex-1 bg-primary px-6 py-3 font-mono text-sm uppercase tracking-widest text-primary-foreground"
+              className="cta-sweep glow-pulse flex-1 bg-primary px-6 py-3 font-mono text-sm uppercase tracking-widest text-primary-foreground"
             >
               Start
             </button>
@@ -443,7 +450,10 @@ function PlayPage() {
 
         {/* Searching indicator dots */}
         {!isSoloUnranked && searching && elapsed < 25 && (
-          <div className="flex items-center gap-2 [animation-delay:500ms]" style={{ animation: "fade-up 0.5s var(--ease-out-expo) 0.5s both" }}>
+          <div
+            className="flex items-center gap-2 [animation-delay:500ms]"
+            style={{ animation: "fade-up 0.5s var(--ease-out-expo) 0.5s both" }}
+          >
             {[0, 1, 2].map((i) => (
               <div
                 key={i}

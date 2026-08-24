@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Instagram, Mail, Youtube } from "lucide-react";
 import { useSfx } from "@/hooks/useSfx";
 import { getGlobalStats } from "@/lib/game.functions";
 
@@ -32,8 +33,8 @@ export function SiteFooter() {
               JEE <span className="text-primary">RANKED</span>
             </Link>
             <p className="max-w-sm font-mono text-xs uppercase leading-relaxed tracking-widest text-muted-foreground">
-              1v1 JEE question duels with ELO ranking. Same paper, same clock,
-              most correct answers takes the rating.
+              1v1 JEE question duels with ELO ranking. Same paper, same clock, most correct answers
+              takes the rating.
             </p>
 
             {/* Live stats */}
@@ -52,6 +53,44 @@ export function SiteFooter() {
                   </span>
                 </div>
               ))}
+            </div>
+
+            {/* Connect */}
+            <div className="space-y-3.5 border-t border-border/60 pt-5">
+              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Connect
+              </span>
+              <div className="flex items-center gap-2.5">
+                <a
+                  href="https://www.instagram.com/jeeranked/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  {...sfx}
+                  className="press-pop flex size-9 items-center justify-center border border-border text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
+                >
+                  <Instagram className="size-4" />
+                </a>
+                <a
+                  href="https://www.youtube.com/@jeeranked"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                  {...sfx}
+                  className="press-pop flex size-9 items-center justify-center border border-border text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
+                >
+                  <Youtube className="size-4" />
+                </a>
+                <a
+                  href="mailto:hello@jeeranked.com"
+                  aria-label="Email us"
+                  {...sfx}
+                  className="link-underline ml-1 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                >
+                  <Mail className="size-3.5 text-primary" />
+                  hello@jeeranked.com
+                </a>
+              </div>
             </div>
           </div>
 

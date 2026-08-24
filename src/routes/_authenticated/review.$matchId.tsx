@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { AdminTag } from "@/components/AdminTag";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { getMatchState, getQuestionExplanations } from "@/lib/game.functions";
 import { renderLatex, wrapBareLatex } from "@/lib/latex";
@@ -131,6 +132,7 @@ function ReviewPage() {
                 <span className="flex flex-wrap items-center gap-3">
                   <Avatar url={data.me.avatar_url} name={data.me.username} size={40} />
                   {data.me.username}
+                  {data.me.is_admin ? <AdminTag /> : null}
                   {data.opponent ? (
                     <>
                       <span className="text-primary">vs</span>
@@ -140,6 +142,7 @@ function ReviewPage() {
                         size={40}
                       />
                       {data.opponent.username}
+                      {data.opponent.is_admin ? <AdminTag /> : null}
                     </>
                   ) : null}
                 </span>

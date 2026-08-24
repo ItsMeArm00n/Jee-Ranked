@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { AdminTag } from "@/components/AdminTag";
 import { getFullLeaderboard } from "@/lib/game.functions";
 import { useSfx } from "@/hooks/useSfx";
 
@@ -10,7 +11,10 @@ export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
       { title: "Leaderboard — JEE Ranked" },
-      { name: "description", content: "Global ELO leaderboard for JEE Ranked. See every ranked player on the ladder." },
+      {
+        name: "description",
+        content: "Global ELO leaderboard for JEE Ranked. See every ranked player on the ladder.",
+      },
     ],
   }),
   component: LeaderboardPage,
@@ -74,7 +78,7 @@ function LeaderboardPage() {
               play("click");
             }}
             onMouseEnter={() => play("hover")}
-            className={`border px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all duration-300 ${
+            className={`press-pop border px-4 py-2 font-mono text-[10px] uppercase tracking-widest ${
               filter === null
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:border-primary hover:text-primary"
@@ -90,7 +94,7 @@ function LeaderboardPage() {
                 play("click");
               }}
               onMouseEnter={() => play("hover")}
-              className={`border px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all duration-300 ${
+              className={`press-pop border px-4 py-2 font-mono text-[10px] uppercase tracking-widest ${
                 filter === t.name
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:border-primary hover:text-primary"
@@ -108,7 +112,9 @@ function LeaderboardPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-32 text-center font-mono text-sm text-muted-foreground">
-            {filter ? "No players in this tier yet." : "No ranked players yet. Be the first on the ladder."}
+            {filter
+              ? "No players in this tier yet."
+              : "No ranked players yet. Be the first on the ladder."}
           </div>
         ) : (
           /* PLAYER LIST */
@@ -151,12 +157,23 @@ function LeaderboardPage() {
                         isTop3 && !filter ? "text-primary font-bold" : "text-muted-foreground"
                       }`}
                     >
-                      {String(p.position).padStart(2, "0")}
+                      <span
+                        className={`inline-block ${
+                          isTop3 && !filter && p.position === 1 ? "medal-glow" : ""
+                        }`}
+                      >
+                        {String(p.position).padStart(2, "0")}
+                      </span>
                     </span>
                     <Avatar url={p.avatar_url} name={p.username} size={32} />
                     <div className="flex flex-col">
-                      <span className="font-bold">{p.username.toUpperCase()}</span>
-                      <span className={`text-[10px] uppercase tracking-widest ${tier?.color ?? "text-muted-foreground"}`}>
+                      <span className="flex items-center gap-2 font-bold">
+                        {p.username.toUpperCase()}
+                        {p.is_admin ? <AdminTag /> : null}
+                      </span>
+                      <span
+                        className={`text-[10px] uppercase tracking-widest ${tier?.color ?? "text-muted-foreground"}`}
+                      >
                         {p.rank}
                       </span>
                     </div>
@@ -190,13 +207,17 @@ function LeaderboardPage() {
               <div
                 key={t.name}
                 style={{ animationDelay: `${i * 60}ms` }}
-                className="ticker-enter border border-border p-4 transition-all duration-300 hover:border-primary/40 hover:bg-primary/5"
+                className="ticker-enter border-glow border border-border p-4"
               >
-                <div className={`font-display text-lg uppercase italic ${t.color}`}>
+                <div
+                  className={`font-display text-lg uppercase italic transition-transform duration-300 hover:translate-x-1 ${t.color}`}
+                >
                   {t.name}
                 </div>
                 <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {t.max === Infinity ? `${t.min.toLocaleString()}+` : `${t.min.toLocaleString()} – ${t.max.toLocaleString()}`}
+                  {t.max === Infinity
+                    ? `${t.min.toLocaleString()}+`
+                    : `${t.min.toLocaleString()} – ${t.max.toLocaleString()}`}
                 </div>
               </div>
             ))}

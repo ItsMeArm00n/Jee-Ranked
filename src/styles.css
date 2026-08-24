@@ -637,6 +637,11 @@
   animation: scale-in 0.4s var(--ease-out-expo) both;
 }
 
+/* One-shot selection pop without fill-mode, so hover transforms keep working */
+@utility pop-select {
+  animation: scale-in 0.35s var(--ease-out-expo);
+}
+
 /* ─── Slide from left / right ─── */
 @keyframes slide-left {
   from {
@@ -776,5 +781,317 @@
 
 .ai-dot {
   animation: ai-bounce 1.4s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ARENA FX — premium interaction layer
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── Rotating conic gradient border ─── */
+@property --spin-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-spin {
+  to {
+    --spin-angle: 360deg;
+  }
+}
+
+@utility conic-border {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    background: conic-gradient(
+      from var(--spin-angle),
+      transparent 0deg,
+      color-mix(in oklab, var(--color-primary) 65%, transparent) 60deg,
+      transparent 130deg,
+      transparent 180deg,
+      color-mix(in oklab, var(--color-primary) 35%, transparent) 240deg,
+      transparent 310deg
+    );
+    animation: border-spin 6s linear infinite;
+    z-index: -1;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    background: var(--color-background);
+    z-index: -1;
+  }
+}
+
+/* Variant that lets the card's own bg show through (surface cards) */
+@utility conic-border-surface {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    background: conic-gradient(
+      from var(--spin-angle),
+      transparent 0deg,
+      color-mix(in oklab, var(--color-primary) 55%, transparent) 70deg,
+      transparent 140deg,
+      transparent 220deg,
+      color-mix(in oklab, var(--color-primary) 25%, transparent) 290deg,
+      transparent 350deg
+    );
+    animation: border-spin 8s linear infinite;
+    z-index: -1;
+  }
+}
+
+/* ─── Mouse-tracked spotlight — set --mx / --my via onMouseMove ─── */
+@utility spotlight-card {
+  position: relative;
+  overflow: hidden;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s var(--ease-out-expo);
+    background: radial-gradient(
+      420px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in oklab, var(--color-primary) 10%, transparent),
+      transparent 65%
+    );
+  }
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+/* ─── Aurora blobs drifting behind hero sections ─── */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 20px) scale(0.95);
+  }
+}
+
+@utility aurora-blob {
+  animation: aurora-drift 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ─── Gentle idle float for badges/decorations ─── */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@utility float-y {
+  animation: float-y 4s ease-in-out infinite;
+}
+
+/* ─── Outlined display text that fills on hover ─── */
+@utility text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in oklab, var(--color-foreground) 45%, transparent);
+  transition:
+    -webkit-text-stroke-color 0.4s var(--ease-out-expo),
+    color 0.4s var(--ease-out-expo);
+}
+.group:hover .text-outline,
+.text-outline:hover {
+  color: var(--color-foreground);
+  -webkit-text-stroke-color: transparent;
+}
+
+/* ─── Divider that shimmers once on reveal ─── */
+@utility shimmer-line {
+  height: 1px;
+  width: 100%;
+  background: var(--color-border);
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 45%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-primary) 80%, transparent),
+      transparent
+    );
+    animation: shine-sweep 1.4s var(--ease-out-expo) 0.3s both;
+  }
+}
+
+/* ─── FAQ answer slide-open (grid rows trick) ─── */
+.faq-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out-expo);
+}
+.faq-body > div {
+  overflow: hidden;
+}
+.faq-answer {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.4s var(--ease-out-expo) 0.05s,
+    transform 0.4s var(--ease-out-expo) 0.05s;
+}
+.faq-chevron {
+  transition: transform 0.35s var(--ease-out-expo);
+}
+
+/* ── details[open] drives the whole reveal ── */
+details[open] > .faq-body,
+details[open] .faq-body {
+  grid-template-rows: 1fr;
+}
+details[open] .faq-answer {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── #1 row: slow medal glow on the left edge ─── */
+@keyframes medal-glow-kf {
+  0%,
+  100% {
+    box-shadow: inset 3px 0 12px -4px color-mix(in oklab, var(--color-primary) 35%, transparent);
+    border-color: color-mix(in oklab, var(--color-primary) 30%, transparent);
+  }
+  50% {
+    box-shadow: inset 5px 0 18px -4px color-mix(in oklab, var(--color-primary) 70%, transparent);
+    border-color: color-mix(in oklab, var(--color-primary) 75%, transparent);
+  }
+}
+
+@utility medal-glow {
+  animation: medal-glow-kf 2.8s ease-in-out infinite;
+}
+
+/* ─── Marquee edge fade + hover pause ─── */
+@utility marquee-mask {
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+  &:hover .marquee {
+    animation-play-state: paused;
+  }
+}
+
+/* ─── Spinning conic ring behind avatars on hover ─── */
+@utility avatar-ring {
+  position: relative;
+  border-radius: 9999px;
+  transition: transform 0.35s var(--ease-out-expo);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--spin-angle),
+      var(--color-primary),
+      transparent 40%,
+      transparent 60%,
+      var(--color-primary)
+    );
+    opacity: 0;
+    transition: opacity 0.35s var(--ease-out-expo);
+    animation: border-spin 2.4s linear infinite;
+  }
+  &:hover {
+    transform: scale(1.08);
+  }
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+/* ─── Tactile press feedback for buttons ─── */
+@utility press-pop {
+  transition:
+    transform 0.2s var(--ease-out-expo),
+    background-color 0.3s var(--ease-out-expo),
+    border-color 0.3s var(--ease-out-expo),
+    color 0.3s var(--ease-out-expo),
+    box-shadow 0.3s var(--ease-out-expo);
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ─── Input focus glow sweep ─── */
+@utility input-glow {
+  transition:
+    border-color 0.35s var(--ease-out-expo),
+    background-color 0.35s var(--ease-out-expo),
+    box-shadow 0.35s var(--ease-out-expo);
+  &:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 15%, transparent),
+      0 0 24px -6px color-mix(in oklab, var(--color-primary) 35%, transparent);
+  }
+}
+
+/* ─── Section heading line that draws itself on reveal ─── */
+@keyframes draw-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@utility draw-line {
+  transform-origin: left;
+  animation: draw-line 0.9s var(--ease-out-expo) both;
+}
+
+/* ─── Slow hue drift for accent text ─── */
+@utility hue-drift {
+  animation: shimmer 6s linear infinite;
+}
+
+/* ─── Pulsing text glow — paints outside glyph bounds, can never clip ─── */
+@keyframes text-glow-kf {
+  0%,
+  100% {
+    text-shadow:
+      0 0 16px color-mix(in oklab, var(--color-primary) 40%, transparent),
+      0 0 2px color-mix(in oklab, var(--color-primary) 30%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 32px color-mix(in oklab, var(--color-primary) 80%, transparent),
+      0 0 64px color-mix(in oklab, var(--color-primary) 35%, transparent),
+      0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent);
+  }
+}
+
+@utility text-glow {
+  animation: text-glow-kf 3s ease-in-out infinite;
 }
 

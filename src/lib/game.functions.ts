@@ -46,24 +46,41 @@ export const getMyProfile = createServerFn({ method: "GET" })
   });
 
 export const getLeaderboard = createServerFn({ method: "GET" }).handler(async () => {
-  const { adminClient, rankTitle } = await import("./game.server");
-  const { data } = await adminClient()
-    .from("profiles")
-    .select("id, username, elo, wins, losses, matches_played, avatar_url")
-    .eq("is_bot", false)
-    .order("elo", { ascending: false })
-    .limit(10);
-  return (data ?? []).map((p) => ({ ...p, rank: rankTitle(p.elo) }));
+  const { adminClient, rankTitle, fetchAdminIds } = await import("./game.server");
+  const db = adminClient();
+  const [admins, { data }] = await Promise.all([
+    fetchAdminIds(db),
+    db
+      .from("profiles")
+      .select("id, username, elo, wins, losses, matches_played, avatar_url")
+      .eq("is_bot", false)
+      .order("elo", { ascending: false })
+      .limit(10),
+  ]);
+  return (data ?? []).map((p) => ({
+    ...p,
+    rank: rankTitle(p.elo),
+    is_admin: admins.has(p.id),
+  }));
 });
 
 export const getFullLeaderboard = createServerFn({ method: "GET" }).handler(async () => {
-  const { adminClient, rankTitle } = await import("./game.server");
-  const { data } = await adminClient()
-    .from("profiles")
-    .select("id, username, elo, wins, losses, draws, matches_played, avatar_url")
-    .eq("is_bot", false)
-    .order("elo", { ascending: false });
-  return (data ?? []).map((p, i) => ({ ...p, rank: rankTitle(p.elo), position: i + 1 }));
+  const { adminClient, rankTitle, fetchAdminIds } = await import("./game.server");
+  const db = adminClient();
+  const [admins, { data }] = await Promise.all([
+    fetchAdminIds(db),
+    db
+      .from("profiles")
+      .select("id, username, elo, wins, losses, draws, matches_played, avatar_url")
+      .eq("is_bot", false)
+      .order("elo", { ascending: false }),
+  ]);
+  return (data ?? []).map((p, i) => ({
+    ...p,
+    rank: rankTitle(p.elo),
+    position: i + 1,
+    is_admin: admins.has(p.id),
+  }));
 });
 
 export const updateProfile = createServerFn({ method: "POST" })
@@ -147,7 +164,7 @@ export const getMatchReplay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ matchId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { adminClient, rankTitle, jeeMarks } = await import("./game.server");
+    const { adminClient, rankTitle, jeeMarks, fetchAdminIds } = await import("./game.server");
     const db = adminClient();
     const uid = context.userId;
 
@@ -163,10 +180,13 @@ export const getMatchReplay = createServerFn({ method: "POST" })
     const isP1 = match.player1_id === uid;
     const opponentId: string | null = isP1 ? match.player2_id : match.player1_id;
 
-    const { data: profiles } = await db
-      .from("profiles")
-      .select("id, username, elo, is_bot, avatar_url")
-      .in("id", [match.player1_id, match.player2_id ?? match.player1_id]);
+    const [admins, { data: profiles }] = await Promise.all([
+      fetchAdminIds(db),
+      db
+        .from("profiles")
+        .select("id, username, elo, is_bot, avatar_url")
+        .in("id", [match.player1_id, match.player2_id ?? match.player1_id]),
+    ]);
     const prof = (id: string | null) => profiles?.find((p) => p.id === id) ?? null;
 
     const qids: string[] = match.question_ids;
@@ -230,6 +250,7 @@ export const getMatchReplay = createServerFn({ method: "POST" })
         elo: prof(uid)?.elo ?? 1200,
         rank: rankTitle(prof(uid)?.elo ?? 1200),
         avatar_url: prof(uid)?.avatar_url ?? null,
+        is_admin: admins.has(uid),
         marks: myMarks,
         correct: myAnswers.filter((e) => e.isCorrect).length,
       },
@@ -237,8 +258,10 @@ export const getMatchReplay = createServerFn({ method: "POST" })
         ? {
             username: prof(opponentId)?.username ?? "Opponent",
             elo: prof(opponentId)?.elo ?? 1200,
+            rank: rankTitle(prof(opponentId)?.elo ?? 1200),
             isBot: prof(opponentId)?.is_bot ?? false,
             avatar_url: prof(opponentId)?.avatar_url ?? null,
+            is_admin: admins.has(opponentId),
             marks: oppMarks,
             correct: oppAnswers.filter((e) => e.isCorrect).length,
           }
@@ -515,6 +538,7 @@ export const getMatchState = createServerFn({ method: "POST" })
       jeeMarks,
       SECONDS_PER_QUESTION,
       AFK_GRACE_SECONDS,
+      fetchAdminIds,
     } = await import("./game.server");
     const db = adminClient();
     const uid = context.userId;
@@ -531,10 +555,13 @@ export const getMatchState = createServerFn({ method: "POST" })
     const opponentId: string | null = isP1 ? match.player2_id : match.player1_id;
     const total: number = match.question_ids.length;
 
-    const { data: profiles } = await db
-      .from("profiles")
-      .select("id, username, elo, avatar_url")
-      .in("id", [match.player1_id, match.player2_id ?? match.player1_id]);
+    const [admins, { data: profiles }] = await Promise.all([
+      fetchAdminIds(db),
+      db
+        .from("profiles")
+        .select("id, username, elo, avatar_url")
+        .in("id", [match.player1_id, match.player2_id ?? match.player1_id]),
+    ]);
     const prof = (id: string | null) => profiles?.find((p) => p.id === id) ?? null;
 
     const { data: answers } = await db
@@ -714,6 +741,7 @@ export const getMatchState = createServerFn({ method: "POST" })
         elo: meProfile?.elo ?? 1200,
         rank: rankTitle(meProfile?.elo ?? 1200),
         avatar_url: meProfile?.avatar_url ?? null,
+        is_admin: admins.has(uid),
         answered: mine.length,
         correct: myScore,
         marks: myMarks,
@@ -724,6 +752,7 @@ export const getMatchState = createServerFn({ method: "POST" })
             elo: prof(opponentId)?.elo ?? 1200,
             rank: rankTitle(prof(opponentId)?.elo ?? 1200),
             avatar_url: prof(opponentId)?.avatar_url ?? null,
+            is_admin: admins.has(opponentId),
             answered: theirs.length,
             correct: match.status === "finished" ? oppScore : null,
             marks: match.status === "finished" ? oppMarks : null,
@@ -1235,4 +1264,61 @@ export const setReportStatus = createServerFn({ method: "POST" })
       .eq("id", data.reportId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+export type AdminStats = {
+  dau: number;
+  wau: number;
+  mau: number;
+  duelsMonth: number;
+  duelsTotal: number;
+  newPlayersMonth: number;
+};
+
+function countDistinctPlayers(
+  rows: { player1_id: string; player2_id: string | null }[] | null,
+): number {
+  const seen = new Set<string>();
+  for (const r of rows ?? []) {
+    seen.add(r.player1_id);
+    if (r.player2_id) seen.add(r.player2_id);
+  }
+  return seen.size;
+}
+
+/** Admin-only traffic + engagement stats computed from our own tables. */
+export const getAdminStats = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async (): Promise<AdminStats> => {
+    const { adminClient } = await import("./game.server");
+    const db = adminClient();
+
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 3600e3).toISOString();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 3600e3).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [day, week, month, total, newPlayers] = await Promise.all([
+      db.from("matches").select("player1_id,player2_id").gte("created_at", dayAgo),
+      db.from("matches").select("player1_id,player2_id").gte("created_at", weekAgo),
+      db
+        .from("matches")
+        .select("player1_id,player2_id", { count: "exact" })
+        .gte("created_at", monthStart),
+      db.from("matches").select("*", { count: "exact", head: true }),
+      db
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("is_bot", false)
+        .gte("created_at", monthStart),
+    ]);
+
+    return {
+      dau: countDistinctPlayers(day.data),
+      wau: countDistinctPlayers(week.data),
+      mau: countDistinctPlayers(month.data),
+      duelsMonth: month.count ?? month.data?.length ?? 0,
+      duelsTotal: total.count ?? 0,
+      newPlayersMonth: newPlayers.count ?? 0,
+    };
   });

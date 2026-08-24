@@ -8,6 +8,7 @@ import { getMyProfile, getUserStats, updateProfile } from "@/lib/game.functions"
 import { useSfx } from "@/hooks/useSfx";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { useCountUpOnView } from "@/hooks/useCountUp";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
@@ -114,7 +115,7 @@ function ProfilePage() {
   }
 
   const field =
-    "w-full border border-border bg-surface px-4 py-4 font-mono text-sm outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary focus:bg-primary/5";
+    "input-glow w-full border border-border bg-surface px-4 py-4 font-mono text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:bg-primary/5";
   const label = "mb-2 block font-mono text-[10px] uppercase tracking-widest text-muted-foreground";
 
   return (
@@ -136,7 +137,9 @@ function ProfilePage() {
             <h2 className="font-display text-2xl uppercase italic tracking-tighter">Identity</h2>
 
             <div className="mt-8 flex items-center gap-6">
-              <Avatar url={avatar} name={username || "You"} size={96} />
+              <span className="avatar-ring inline-block">
+                <Avatar url={avatar} name={username || "You"} size={96} />
+              </span>
               <div className="space-y-3">
                 <input
                   ref={fileRef}
@@ -146,7 +149,10 @@ function ProfilePage() {
                   onChange={(e) => pick(e.target.files?.[0])}
                 />
                 <button
-                  onClick={() => { play("click"); fileRef.current?.click(); }}
+                  onClick={() => {
+                    play("click");
+                    fileRef.current?.click();
+                  }}
                   onMouseEnter={() => play("hover")}
                   className="border border-border px-4 py-2 font-mono text-xs uppercase tracking-widest transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
                 >
@@ -211,44 +217,47 @@ function ProfilePage() {
 
           {/* STATS + ACCOUNT */}
           <div className="space-y-8 lg:col-span-5">
-            <section className="wipe-enter border-l-4 border-primary bg-surface/40 p-8 [animation-delay:150ms]">
-              <h2 className="font-display text-2xl uppercase italic tracking-tighter">Rating</h2>
-              <div className="mt-6 flex items-end justify-between">
-                <div>
-                  <div className="font-display text-6xl leading-none tabular-nums">
-                    {p?.elo.toLocaleString() ?? "—"}
+            <section className="wipe-enter relative overflow-hidden border-l-4 border-primary bg-surface/40 p-8 [animation-delay:150ms]">
+              <div className="conic-border-surface pointer-events-none absolute inset-0 opacity-60" />
+              <div className="relative">
+                <h2 className="font-display text-2xl uppercase italic tracking-tighter">Rating</h2>
+                <div className="mt-6 flex items-end justify-between">
+                  <div>
+                    <div className="font-display text-6xl leading-none tabular-nums">
+                      {p?.elo.toLocaleString() ?? "—"}
+                    </div>
+                    <div className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                      {p?.elo.toLocaleString() ?? "1,200"} ELO
+                    </div>
                   </div>
-                  <div className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                    {p?.elo.toLocaleString() ?? "1,200"} ELO
-                  </div>
-                </div>
-                <div className="font-mono text-xs uppercase tracking-widest text-primary">
-                  {p?.rank ?? "—"}
-                </div>
-              </div>
-              <div className="mt-8 grid grid-cols-3 gap-2 border-t border-border pt-6 text-center font-mono text-xs">
-                <div>
-                  <div className="font-display text-3xl tabular-nums">{p?.wins ?? 0}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Wins
+                  <div className="font-mono text-xs uppercase tracking-widest text-primary">
+                    {p?.rank ?? "—"}
                   </div>
                 </div>
-                <div>
-                  <div className="font-display text-3xl tabular-nums">{p?.losses ?? 0}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Losses
+                <div className="mt-8 grid grid-cols-3 gap-2 border-t border-border pt-6 text-center font-mono text-xs">
+                  <div>
+                    <div className="font-display text-3xl tabular-nums">{p?.wins ?? 0}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Wins
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl tabular-nums">{p?.losses ?? 0}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Losses
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl tabular-nums">{p?.draws ?? 0}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Draws
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="font-display text-3xl tabular-nums">{p?.draws ?? 0}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Draws
-                  </div>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span>Duels fought</span>
+                  <span className="tabular-nums text-foreground">{p?.matches_played ?? 0}</span>
                 </div>
-              </div>
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                <span>Duels fought</span>
-                <span className="tabular-nums text-foreground">{p?.matches_played ?? 0}</span>
               </div>
             </section>
 
@@ -285,7 +294,14 @@ function ProfilePage() {
         <div className="pointer-events-none sticky bottom-4 z-30 -mt-4 flex justify-center scroll-indicator-fade">
           <div className="flex flex-col items-center gap-1 text-muted-foreground/40">
             <span className="font-mono text-[10px] uppercase tracking-widest">Stats below</span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <path d="M4 6L8 10L12 6" />
             </svg>
           </div>
@@ -322,97 +338,98 @@ function ProfilePage() {
           </section>
         ) : s ? (
           <section className="mt-12 space-y-8">
-            {/* HERO STATS */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <HeroStat
-                label="Matches"
-                value={s.totalMatches}
-                delay={0}
-              />
-              <HeroStat
-                label="Win Rate"
-                value={
-                  s.totalMatches
-                    ? `${Math.round(((s.ranked.wins + s.unranked.wins) / s.totalMatches) * 100)}%`
-                    : "—"
-                }
-                delay={50}
-              />
-              <HeroStat
-                label="Accuracy"
-                value={`${s.accuracy.pct}%`}
-                sub={`${s.accuracy.correct}/${s.accuracy.total}`}
-                delay={100}
-              />
-              <HeroStat
-                label="Questions"
-                value={s.accuracy.total}
-                delay={150}
-              />
+            {/* SCOREBOARD STRIP */}
+            <div className="animate-enter relative overflow-hidden border border-border bg-surface/40">
+              <div className="shimmer-line" />
+              <div className="grid grid-cols-2 divide-border sm:grid-cols-4 sm:divide-x">
+                <StatCell label="Duels fought" value={s.totalMatches} />
+                <StatCell
+                  label="Win rate"
+                  value={
+                    s.totalMatches
+                      ? Math.round(((s.ranked.wins + s.unranked.wins) / s.totalMatches) * 100)
+                      : 0
+                  }
+                  suffix="%"
+                />
+                <StatCell
+                  label="Accuracy"
+                  value={s.accuracy.pct}
+                  suffix="%"
+                  sub={`${s.accuracy.correct}/${s.accuracy.total} correct`}
+                />
+                <StatCell label="Questions answered" value={s.accuracy.total} />
+              </div>
             </div>
 
-            {/* CATEGORY CARDS */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <CategoryCard
-                title="Ranked"
-                accent="border-l-primary"
-                stats={s.ranked}
-                delay={200}
-              />
-              <CategoryCard
-                title="Unranked"
-                accent="border-l-muted-foreground"
-                stats={s.unranked}
-                delay={250}
-              />
-              <CategoryCard
-                title="Solo Practice"
-                accent="border-l-accent"
-                stats={s.solo}
-                delay={300}
-              />
-              <CategoryCard
-                title="Duo Random"
-                accent="border-l-success"
-                stats={s.duo}
-                delay={350}
-              />
-              <CategoryCard
-                title="vs Bots"
-                accent="border-l-muted-foreground/40"
-                stats={s.bot}
-                delay={400}
-              />
-            </div>
-
-            {/* SUBJECT BREAKDOWN */}
-            {Object.keys(s.subjects).length > 0 ? (
-              <div className="border border-border bg-surface/40 p-8 [animation-delay:450ms] animate-enter">
-                <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-                  By Subject
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+              {/* CAREER RECORD DIAL */}
+              <div className="animate-enter border border-border bg-surface/40 p-8 [animation-delay:100ms] lg:col-span-4">
+                <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Career record
                 </h3>
-                <div className="mt-6 space-y-4">
+                <WinRateDial
+                  wins={s.ranked.wins + s.unranked.wins}
+                  losses={s.ranked.losses + s.unranked.losses}
+                  draws={s.ranked.draws + s.unranked.draws}
+                />
+              </div>
+
+              {/* MODE BREAKDOWN */}
+              <div className="animate-enter border border-border bg-surface/40 p-8 [animation-delay:180ms] lg:col-span-8">
+                <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  By mode
+                </h3>
+                <div className="mt-6 space-y-1">
+                  <ModeRow title="Ranked" stats={s.ranked} accent="bg-primary" delay={200} />
+                  <ModeRow title="Unranked" stats={s.unranked} accent="bg-primary/60" delay={260} />
+                  <ModeRow
+                    title="Solo practice"
+                    stats={s.solo}
+                    accent="bg-primary/40"
+                    delay={320}
+                  />
+                  <ModeRow title="Duo random" stats={s.duo} accent="bg-success" delay={380} />
+                  <ModeRow
+                    title="vs Bots"
+                    stats={s.bot}
+                    accent="bg-muted-foreground/50"
+                    delay={440}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SUBJECT PERFORMANCE */}
+            {Object.keys(s.subjects).length > 0 ? (
+              <div className="animate-enter border border-border bg-surface/40 p-8 [animation-delay:250ms]">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                    Subject performance
+                  </h3>
+                  <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 bg-primary" /> Won
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block size-2 bg-border" /> Lost / drawn
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-6 space-y-5">
                   {Object.entries(s.subjects)
                     .sort((a, b) => b[1].played - a[1].played)
-                    .map(([subj, d]) => {
+                    .map(([subj, d], i) => {
                       const pct = d.played ? Math.round((d.wins / d.played) * 100) : 0;
                       return (
-                        <div key={subj}>
-                          <div className="flex items-center justify-between font-mono text-xs">
-                            <span className="capitalize text-muted-foreground">
-                              {subj === "mixed" ? "Mixed / All" : subj}
-                            </span>
-                            <span className="tabular-nums text-muted-foreground">
-                              {d.played} played · {d.wins}W · {pct}%
-                            </span>
-                          </div>
-                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/40">
-                            <div
-                              className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
+                        <SubjectRow
+                          key={subj}
+                          name={subj}
+                          played={d.played}
+                          wins={d.wins}
+                          pct={pct}
+                          delay={300 + i * 80}
+                        />
                       );
                     })}
                 </div>
@@ -425,87 +442,148 @@ function ProfilePage() {
   );
 }
 
-function HeroStat({
+/* ─── Scoreboard cell — count-up number, hairline dividers instead of cards ─── */
+function StatCell({
   label,
   value,
+  suffix,
   sub,
-  delay,
 }: {
   label: string;
-  value: string | number;
+  value: number;
+  suffix?: string;
   sub?: string;
-  delay: number;
 }) {
+  const { ref, value: shown } = useCountUpOnView<HTMLDivElement>(value);
   return (
-    <div
-      className="border-t-2 border-primary/30 bg-surface/40 p-5 animate-enter hover-lift"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div ref={ref} className="group px-6 py-7 transition-colors duration-300 hover:bg-primary/5">
       <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
-      <div className="mt-1.5 font-display text-4xl tabular-nums leading-none">{value}</div>
+      <div className="mt-2 font-display text-4xl tabular-nums leading-none transition-transform duration-300 group-hover:-translate-y-0.5 sm:text-5xl">
+        {shown.toLocaleString()}
+        {suffix ? <span className="text-primary">{suffix}</span> : null}
+      </div>
       {sub ? (
-        <div className="mt-1 font-mono text-[10px] text-muted-foreground/60">{sub}</div>
+        <div className="mt-1.5 font-mono text-[10px] tabular-nums text-muted-foreground/70">
+          {sub}
+        </div>
       ) : null}
     </div>
   );
 }
 
-function CategoryCard({
+/* ─── Conic-gradient donut showing overall win share ─── */
+function WinRateDial({ wins, losses, draws }: { wins: number; losses: number; draws: number }) {
+  const decided = wins + losses + draws;
+  const pct = decided ? Math.round((wins / decided) * 100) : 0;
+  return (
+    <div className="mt-6 flex flex-col items-center">
+      <div
+        className="scale-in relative size-44 rounded-full transition-all duration-700 ease-out [background:conic-gradient(var(--color-primary)_calc(var(--p)*1%),var(--color-border)_0)] [--p:var(--pct)]"
+        style={{ "--pct": pct } as React.CSSProperties}
+      >
+        <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-background">
+          <span className="font-display text-4xl leading-none tabular-nums">
+            {decided ? `${pct}%` : "—"}
+          </span>
+          <span className="mt-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            win rate
+          </span>
+        </div>
+      </div>
+      <div className="mt-6 flex w-full justify-center gap-6 font-mono text-xs">
+        <span className="tabular-nums text-primary">{wins}W</span>
+        <span className="tabular-nums text-destructive">{losses}L</span>
+        <span className="tabular-nums text-muted-foreground">{draws}D</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── One mode row — stacked W/L/D segment bar, scoreboard style ─── */
+function ModeRow({
   title,
-  accent,
   stats,
+  accent,
   delay,
 }: {
   title: string;
-  accent: string;
   stats: { played: number; wins: number; losses?: number; draws?: number };
+  accent: string;
   delay: number;
 }) {
   const pct = stats.played ? Math.round((stats.wins / stats.played) * 100) : 0;
   const losses = stats.losses ?? 0;
   const draws = stats.draws ?? 0;
+  const winW = stats.played ? (stats.wins / stats.played) * 100 : 0;
+  const lossW = stats.played ? (losses / stats.played) * 100 : 0;
+  const drawW = stats.played ? (draws / stats.played) * 100 : 0;
   return (
     <div
-      className={`border-l-4 ${accent} bg-surface/40 p-6 animate-enter hover-lift`}
+      className="row-slide ticker-enter group grid cursor-default grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-2 border-b border-border/60 py-3 last:border-0 sm:grid-cols-[10rem_1fr_5rem]"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="flex items-center justify-between">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-          {title}
-        </h3>
-        <span className="font-display text-lg tabular-nums text-muted-foreground">
-          {stats.played}
+      <div className="flex items-center gap-2.5 font-mono text-xs uppercase tracking-widest">
+        <span className={`inline-block h-3 w-1 ${accent}`} />
+        {title}
+      </div>
+      <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
+        <div className="flex h-1.5 w-full bg-border/50">
+          <div
+            className="h-full bg-success transition-all duration-700 ease-out"
+            style={{ width: `${winW}%` }}
+          />
+          <div
+            className="h-full bg-destructive transition-all duration-700 ease-out"
+            style={{ width: `${lossW}%` }}
+          />
+          <div
+            className="h-full bg-muted-foreground/60 transition-all duration-700 ease-out"
+            style={{ width: `${drawW}%` }}
+          />
+        </div>
+        <span className="hidden shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground sm:inline">
+          {stats.played} played
         </span>
       </div>
+      <div className="text-right font-display text-xl tabular-nums text-muted-foreground transition-colors duration-300 group-hover:text-foreground">
+        {stats.played ? `${pct}%` : "—"}
+      </div>
+    </div>
+  );
+}
 
-      {/* Win rate bar */}
-      <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-border/40">
+/* ─── Subject row with glowing hairline bar ─── */
+function SubjectRow({
+  name,
+  played,
+  wins,
+  pct,
+  delay,
+}: {
+  name: string;
+  played: number;
+  wins: number;
+  pct: number;
+  delay: number;
+}) {
+  return (
+    <div className="ticker-enter group" style={{ animationDelay: `${delay}ms` }}>
+      <div className="flex items-baseline justify-between font-mono text-xs">
+        <span className="capitalize tracking-widest transition-colors duration-300 group-hover:text-primary">
+          {name === "mixed" ? "Mixed / All" : name}
+        </span>
+        <span className="tabular-nums text-muted-foreground">
+          {played} played · {wins}W ·{" "}
+          <span className={pct >= 50 ? "text-primary" : "text-foreground"}>{pct}%</span>
+        </span>
+      </div>
+      <div className="mt-2 h-px w-full bg-border/50">
         <div
-          className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+          className="h-px bg-primary shadow-[0_0_8px_var(--color-primary)] transition-all duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-xs">
-        <div>
-          <span className="tabular-nums text-success">{stats.wins}</span>
-          <span className="ml-1 text-[10px] text-muted-foreground">W</span>
-        </div>
-        <div>
-          <span className="tabular-nums text-destructive">{losses}</span>
-          <span className="ml-1 text-[10px] text-muted-foreground">L</span>
-        </div>
-        <div>
-          <span className="tabular-nums text-muted-foreground">{draws}</span>
-          <span className="ml-1 text-[10px] text-muted-foreground">D</span>
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        <span>Win Rate</span>
-        <span className="tabular-nums text-foreground">{stats.played ? `${pct}%` : "—"}</span>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
+import { AdminTag } from "@/components/AdminTag";
 import { ReportQuestionDialog } from "@/components/report-question-dialog";
 import { getMatchState, submitAnswer, forfeitMatch, confirmActive } from "@/lib/game.functions";
 import { renderLatex } from "@/lib/latex";
@@ -146,6 +147,30 @@ function MatchPage() {
 
   // Correct-answer streak.
   const streak = useRef(0);
+
+  const stemHtml = useMemo(
+    () => (data?.question ? renderLatex(data.question.stem) : ""),
+    [data?.question?.stem],
+  );
+  const optionsHtml = useMemo(
+    () =>
+      data?.question
+        ? data.question.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
+        : [],
+    [data?.question?.options],
+  );
+  const resultStemHtml = useMemo(
+    () => (data?.lastResult?.stem ? renderLatex(data.lastResult.stem) : ""),
+    [data?.lastResult?.stem],
+  );
+  const resultOptionsHtml = useMemo(
+    () =>
+      data?.lastResult
+        ? data.lastResult.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
+        : [],
+    [data?.lastResult?.options],
+  );
+
   function selectChoice(choice: string) {
     play("select");
     setSelectedChoice(choice);
@@ -239,29 +264,6 @@ function MatchPage() {
   const myPct = (data.me.answered / total) * 100;
   const oppPct = data.opponent ? (data.opponent.answered / total) * 100 : 0;
 
-  const stemHtml = useMemo(
-    () => (data.question ? renderLatex(data.question.stem) : ""),
-    [data.question?.stem],
-  );
-  const optionsHtml = useMemo(
-    () =>
-      data.question
-        ? data.question.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
-        : [],
-    [data.question?.options],
-  );
-  const resultStemHtml = useMemo(
-    () => (data.lastResult?.stem ? renderLatex(data.lastResult.stem) : ""),
-    [data.lastResult?.stem],
-  );
-  const resultOptionsHtml = useMemo(
-    () =>
-      data.lastResult
-        ? data.lastResult.options.map((o) => ({ key: o.key, html: renderLatex(o.text) }))
-        : [],
-    [data.lastResult?.options],
-  );
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -276,7 +278,10 @@ function MatchPage() {
               className="border border-border"
             />
             <div className="ticker-enter [animation-delay:150ms]">
-              <div className="font-bold">{data.me.username}</div>
+              <div className="flex items-center gap-2 font-bold">
+                {data.me.username}
+                {data.me.is_admin ? <AdminTag /> : null}
+              </div>
               <div className="font-mono text-[10px] text-primary">{data.me.elo} ELO</div>
             </div>
           </div>
@@ -318,7 +323,10 @@ function MatchPage() {
           {!data.isSolo && (
             <div className="flex w-1/3 items-center justify-end gap-4 text-right">
               <div className="ticker-enter [animation-delay:150ms]">
-                <div className="font-bold">{data.opponent?.username ?? "—"}</div>
+                <div className="flex items-center justify-end gap-2 font-bold">
+                  {data.opponent?.is_admin ? <AdminTag /> : null}
+                  {data.opponent?.username ?? "—"}
+                </div>
                 <div className="font-mono text-[10px] text-muted-foreground">
                   {data.opponent?.elo ?? "—"} ELO
                 </div>
