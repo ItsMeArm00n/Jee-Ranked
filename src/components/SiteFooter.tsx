@@ -54,10 +54,93 @@ export function SiteFooter() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Navigation columns + connect */}
+          <div className="flex flex-col gap-10 md:col-span-7 md:pl-8">
+            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+              <div className="space-y-4">
+                <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                  Play
+                </span>
+                <ul className="space-y-2.5">
+                  <li>
+                    <Link
+                      to="/play"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Find a Duel
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/leaderboard"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Leaderboard
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                  Account
+                </span>
+                <ul className="space-y-2.5">
+                  <li>
+                    <Link
+                      to="/profile"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/auth"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Sign In
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                  Legal
+                </span>
+                <ul className="space-y-2.5">
+                  <li>
+                    <Link
+                      to="/privacy"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/terms"
+                      {...sfx}
+                      className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    >
+                      Terms & Conditions
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
 
             {/* Connect */}
-            <div className="space-y-3.5 border-t border-border/60 pt-5">
-              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+            <div className="flex flex-col items-start gap-3.5 border-t border-border/60 pt-6 sm:items-end">
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
                 Connect
               </span>
               <div className="flex items-center gap-2.5">
@@ -91,87 +174,6 @@ export function SiteFooter() {
                   hello@jeeranked.com
                 </a>
               </div>
-            </div>
-          </div>
-
-          {/* Navigation columns */}
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7 md:pl-8">
-            <div className="space-y-4">
-              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
-                Play
-              </span>
-              <ul className="space-y-2.5">
-                <li>
-                  <Link
-                    to="/play"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Find a Duel
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/leaderboard"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Leaderboard
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
-                Account
-              </span>
-              <ul className="space-y-2.5">
-                <li>
-                  <Link
-                    to="/profile"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/auth"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Sign In
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <span className="block font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
-                Legal
-              </span>
-              <ul className="space-y-2.5">
-                <li>
-                  <Link
-                    to="/privacy"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/terms"
-                    {...sfx}
-                    className="link-underline font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                  >
-                    Terms & Conditions
-                  </Link>
-                </li>
-              </ul>
             </div>
           </div>
         </div>

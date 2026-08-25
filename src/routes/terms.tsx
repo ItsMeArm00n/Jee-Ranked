@@ -18,10 +18,10 @@ function TermsPage() {
         </Link>
 
         <h1 className="font-display text-5xl uppercase italic tracking-tighter">
-          Terms & Conditions
+          Terms &amp; Conditions
         </h1>
         <p className="mt-2 font-mono text-xs text-muted-foreground">
-          Last updated: August 17, 2026
+          Last updated: August 24, 2026
         </p>
 
         <div className="mt-10 space-y-8 font-mono text-sm leading-relaxed text-muted-foreground">
@@ -30,8 +30,8 @@ function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By accessing or using JEE Ranked, you agree to be bound by these Terms & Conditions.
-              If you do not agree, do not use the service.
+              By accessing or using JEE Ranked, you agree to be bound by these Terms &amp;
+              Conditions. If you do not agree, do not use the service.
             </p>
           </section>
 
@@ -40,20 +40,23 @@ function TermsPage() {
               2. Description of Service
             </h2>
             <p>
-              JEE Ranked is a competitive platform for practising JEE-level questions. Users can
-              participate in ranked 1v1 duels where ELO ratings change based on results, or unranked
-              practice sessions solo or against random opponents.
+              JEE Ranked is a competitive platform for practising JEE-level questions. You can play
+              ranked 1v1 duels against other users where ELO ratings change based on results, or
+              unranked sessions solo or against scheduled bot opponents — all on a shared timer. The
+              service also provides leaderboards, player profiles, match replays and reviews, and
+              AI-generated step-by-step explanations for questions.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              3. Accounts
+              3. Eligibility &amp; Accounts
             </h2>
             <p>
-              You are responsible for maintaining the security of your account. You must provide
-              accurate information when creating an account. One account per person — duplicate
-              accounts may be suspended.
+              You must be at least 13 years old to create an account. You are responsible for
+              maintaining the security of your account and credentials. You must provide accurate
+              information when creating an account. One account per person — duplicate accounts may
+              be suspended.
             </p>
           </section>
 
@@ -62,10 +65,12 @@ function TermsPage() {
               4. Fair Play
             </h2>
             <p>
-              You agree to play fairly. Using bots, scripts, or any form of automation to answer
-              questions is prohibited. Colluding with other players to manipulate ELO ratings is
-              grounds for account suspension. We reserve the right to investigate and take action
-              against suspicious activity.
+              You agree to play fairly. Using bots, scripts, browser extensions or any form of
+              automation to answer questions is prohibited. Colluding with other players, creating
+              multiple accounts, or otherwise manipulating ELO ratings is grounds for account
+              suspension. Inactivity during an active match may result in automatic forfeiture. We
+              reserve the right to investigate and take action against suspicious activity,
+              including adjusting or resetting ratings affected by violations.
             </p>
           </section>
 
@@ -75,46 +80,77 @@ function TermsPage() {
             </h2>
             <p>
               ELO ratings are calculated using a standard algorithm and are intended to reflect your
-              skill level. Unranked matches do not affect your ELO. We do not guarantee the accuracy
-              of ELO ratings and they are provided as-is.
+              skill level on the platform. Unranked matches do not affect your ELO. Ratings are
+              provided as-is and we do not guarantee they accurately represent ability in any actual
+              examination.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              6. Content
+              6. Educational Content &amp; AI Explanations
             </h2>
             <p>
-              All questions, topics, and educational content on JEE Ranked are provided for practice
-              purposes. Questions may be sourced from publicly available JEE preparation materials.
-              We do not claim ownership of exam-level question content.
+              Questions are provided for practice purposes and may be sourced from publicly
+              available JEE preparation materials; we do not claim ownership of exam-level question
+              content. Explanations may be generated by AI (Google's Gemini API) and can contain
+              errors or incomplete reasoning — always verify solutions against official sources.
+              Educational content is not affiliated with, endorsed by, or connected to NTA, IITs or
+              any examination authority. Do not enter personal information into report details or
+              profile fields beyond what is requested.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              7. Termination
+              7. User Conduct
             </h2>
             <p>
-              We reserve the right to suspend or terminate your account at our discretion,
-              particularly in cases of fair play violations, automated play, or abusive behaviour.
-              You may also delete your account at any time by contacting us.
+              The question report feature exists to flag incorrect or inappropriate content.
+              Submitting false, abusive or spam reports is prohibited. Usernames, avatars and bios
+              must not contain offensive, misleading or impersonating content. We may remove such
+              content and suspend offending accounts.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              8. Disclaimer
+              8. Intellectual Property
             </h2>
             <p>
-              JEE Ranked is provided "as is" without warranties of any kind. We are not responsible
-              for any issues arising from the use of the service. Use at your own risk.
+              The JEE Ranked name, design, code and original content are owned by us. Questions
+              remain the property of their respective sources. All third-party trademarks (including
+              Google's) belong to their respective owners.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              9. Changes to Terms
+              9. Availability &amp; Termination
+            </h2>
+            <p>
+              We do not guarantee uninterrupted availability of the service. We reserve the right to
+              suspend or terminate your account at our discretion, particularly in cases of fair
+              play violations, automated play, or abusive behaviour. You may delete your account at
+              any time by contacting us.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
+              10. Disclaimer &amp; Limitation of Liability
+            </h2>
+            <p>
+              JEE Ranked is provided "as is" without warranties of any kind. To the maximum extent
+              permitted by law, we are not liable for any direct or indirect damages arising from
+              your use of the service, including reliance on educational content or AI-generated
+              explanations. Use at your own risk.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
+              11. Changes to Terms
             </h2>
             <p>
               We may modify these Terms at any time. Continued use of the service after changes
@@ -124,9 +160,25 @@ function TermsPage() {
 
           <section>
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
-              10. Contact
+              12. Governing Law
             </h2>
-            <p>For questions about these Terms, please reach out through our support channels.</p>
+            <p>These Terms are governed by the laws of India.</p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
+              13. Contact
+            </h2>
+            <p>
+              For questions about these Terms, email{" "}
+              <a
+                href="mailto:hello@jeeranked.com"
+                className="text-primary transition-colors hover:text-foreground"
+              >
+                hello@jeeranked.com
+              </a>{" "}
+              or reach us on Instagram (@jeeranked) or YouTube (@jeeranked).
+            </p>
           </section>
         </div>
       </main>

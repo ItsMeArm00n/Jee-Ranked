@@ -110,6 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7f2c2cfc83ceb73d42b35757437a97b/id-preview-e7cc5d8a--afe6097a-d9c5-4536-83ff-267e57476e69.lovable.app-1786436101807.png",
       },
+      { name: "strix-verification", content: "strix-verify-371f21f8ceff6609e0aabb0fe11f7c1c" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
