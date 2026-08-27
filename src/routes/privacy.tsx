@@ -128,10 +128,10 @@ function PrivacyPage() {
               Your account and match data are retained while your account is active. You may request
               deletion of your account and associated personal data at any time by emailing{" "}
               <a
-                href="mailto:hello@jeeranked.com"
+                href="mailto:info@jeeranked.com"
                 className="text-primary transition-colors hover:text-foreground"
               >
-                hello@jeeranked.com
+                info@jeeranked.com
               </a>
               . Finished match records may be retained in anonymised or aggregated form for
               leaderboard integrity and statistical purposes.
@@ -178,10 +178,10 @@ function PrivacyPage() {
             <p>
               Questions about this policy? Email{" "}
               <a
-                href="mailto:hello@jeeranked.com"
+                href="mailto:info@jeeranked.com"
                 className="text-primary transition-colors hover:text-foreground"
               >
-                hello@jeeranked.com
+                info@jeeranked.com
               </a>{" "}
               or reach us on Instagram (@jeeranked) or YouTube (@jeeranked).
             </p>

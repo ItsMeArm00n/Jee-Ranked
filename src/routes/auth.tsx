@@ -145,7 +145,7 @@ function AuthPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="EMAIL"
+            placeholder="info@jeeranked.com"
             className="input-glow w-full border border-border bg-surface px-4 py-4 font-mono text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:bg-primary/5"
           />
           <input

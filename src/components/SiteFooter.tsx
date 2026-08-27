@@ -165,13 +165,13 @@ export function SiteFooter() {
                   <Youtube className="size-4" />
                 </a>
                 <a
-                  href="mailto:hello@jeeranked.com"
+                  href="mailto:info@jeeranked.com"
                   aria-label="Email us"
                   {...sfx}
                   className="link-underline ml-1 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-200 hover:text-foreground"
                 >
                   <Mail className="size-3.5 text-primary" />
-                  hello@jeeranked.com
+                  info@jeeranked.com
                 </a>
               </div>
             </div>

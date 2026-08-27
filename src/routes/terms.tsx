@@ -172,10 +172,10 @@ function TermsPage() {
             <p>
               For questions about these Terms, email{" "}
               <a
-                href="mailto:hello@jeeranked.com"
+                href="mailto:info@jeeranked.com"
                 className="text-primary transition-colors hover:text-foreground"
               >
-                hello@jeeranked.com
+                info@jeeranked.com
               </a>{" "}
               or reach us on Instagram (@jeeranked) or YouTube (@jeeranked).
             </p>
