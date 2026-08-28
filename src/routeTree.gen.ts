@@ -12,12 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as GuestRouteImport } from './routes/guest'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/play'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedQuestionsRouteImport } from './routes/_authenticated/questions'
+import { Route as GuestIndexRouteImport } from './routes/guest/index'
+import { Route as GuestMatchRouteImport } from './routes/guest/match'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
 import { Route as AuthenticatedMatchMatchIdRouteImport } from './routes/_authenticated/match.$matchId'
 import { Route as AuthenticatedReplayMatchIdRouteImport } from './routes/_authenticated/replay.$matchId'
@@ -35,6 +38,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuestRoute = GuestRouteImport.update({
+  id: '/guest',
+  path: '/guest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
@@ -67,6 +75,16 @@ const AuthenticatedQuestionsRoute = AuthenticatedQuestionsRouteImport.update({
   path: '/questions',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const GuestIndexRoute = GuestIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GuestRoute,
+} as any)
+const GuestMatchRoute = GuestMatchRouteImport.update({
+  id: '/match',
+  path: '/match',
+  getParentRoute: () => GuestRoute,
+} as any)
 const AuthenticatedAdminReportsRoute =
   AuthenticatedAdminReportsRouteImport.update({
     id: '/admin/reports',
@@ -95,12 +113,15 @@ const AuthenticatedReviewMatchIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/guest': typeof GuestRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/play': typeof AuthenticatedPlayRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/questions': typeof AuthenticatedQuestionsRoute
+  '/guest/match': typeof GuestMatchRoute
+  '/guest/': typeof GuestIndexRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
@@ -115,6 +136,8 @@ export interface FileRoutesByTo {
   '/play': typeof AuthenticatedPlayRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/questions': typeof AuthenticatedQuestionsRoute
+  '/guest/match': typeof GuestMatchRoute
+  '/guest': typeof GuestIndexRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
@@ -125,12 +148,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/guest': typeof GuestRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_authenticated/play': typeof AuthenticatedPlayRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/questions': typeof AuthenticatedQuestionsRoute
+  '/guest/match': typeof GuestMatchRoute
+  '/guest/': typeof GuestIndexRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/match/$matchId': typeof AuthenticatedMatchMatchIdRoute
   '/_authenticated/replay/$matchId': typeof AuthenticatedReplayMatchIdRoute
@@ -141,12 +167,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/guest'
     | '/leaderboard'
     | '/privacy'
     | '/terms'
     | '/play'
     | '/profile'
     | '/questions'
+    | '/guest/match'
+    | '/guest/'
     | '/admin/reports'
     | '/match/$matchId'
     | '/replay/$matchId'
@@ -161,6 +190,8 @@ export interface FileRouteTypes {
     | '/play'
     | '/profile'
     | '/questions'
+    | '/guest/match'
+    | '/guest'
     | '/admin/reports'
     | '/match/$matchId'
     | '/replay/$matchId'
@@ -170,12 +201,15 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/guest'
     | '/leaderboard'
     | '/privacy'
     | '/terms'
     | '/_authenticated/play'
     | '/_authenticated/profile'
     | '/_authenticated/questions'
+    | '/guest/match'
+    | '/guest/'
     | '/_authenticated/admin/reports'
     | '/_authenticated/match/$matchId'
     | '/_authenticated/replay/$matchId'
@@ -186,6 +220,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  GuestRoute: typeof GuestRouteWithChildren
   LeaderboardRoute: typeof LeaderboardRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -212,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guest': {
+      id: '/guest'
+      path: '/guest'
+      fullPath: '/guest'
+      preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard': {
@@ -255,6 +297,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/questions'
       preLoaderRoute: typeof AuthenticatedQuestionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/guest/': {
+      id: '/guest/'
+      path: '/'
+      fullPath: '/guest/'
+      preLoaderRoute: typeof GuestIndexRouteImport
+      parentRoute: typeof GuestRoute
+    }
+    '/guest/match': {
+      id: '/guest/match'
+      path: '/match'
+      fullPath: '/guest/match'
+      preLoaderRoute: typeof GuestMatchRouteImport
+      parentRoute: typeof GuestRoute
     }
     '/_authenticated/admin/reports': {
       id: '/_authenticated/admin/reports'
@@ -310,10 +366,23 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface GuestRouteChildren {
+  GuestMatchRoute: typeof GuestMatchRoute
+  GuestIndexRoute: typeof GuestIndexRoute
+}
+
+const GuestRouteChildren: GuestRouteChildren = {
+  GuestMatchRoute: GuestMatchRoute,
+  GuestIndexRoute: GuestIndexRoute,
+}
+
+const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  GuestRoute: GuestRouteWithChildren,
   LeaderboardRoute: LeaderboardRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,

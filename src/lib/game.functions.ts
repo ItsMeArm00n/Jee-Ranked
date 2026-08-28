@@ -311,18 +311,20 @@ export const findMatch = createServerFn({ method: "POST" })
       .maybeSingle();
     if (mine) return { matchId: mine.id as string, status: mine.status as string };
 
-    // Expire stale ranked queue entries.
+    // Expire stale ranked queue entries (ranked only — don't touch unranked).
     await db
       .from("matches")
       .update({ status: "cancelled" })
       .eq("status", "waiting")
+      .or("is_ranked.is.null,is_ranked.eq.true")
       .lt("created_at", new Date(Date.now() - 3 * 60_000).toISOString());
 
-    // Try to join someone waiting.
+    // Try to join someone waiting (ranked only, so we never land in an unranked match).
     const { data: open } = await db
       .from("matches")
       .select("id")
       .eq("status", "waiting")
+      .or("is_ranked.is.null,is_ranked.eq.true")
       .neq("player1_id", uid)
       .order("created_at", { ascending: true })
       .limit(1)

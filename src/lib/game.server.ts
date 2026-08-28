@@ -329,29 +329,27 @@ export async function settleMatch(
     return fresh as MatchRow;
   }
 
-  if (isRanked) {
+  await db
+    .from("profiles")
+    .update({
+      ...(isRanked ? { elo: pr1.elo + d1 } : {}),
+      wins: pr1.wins + (result1 === 1 ? 1 : 0),
+      losses: pr1.losses + (result1 === 0 ? 1 : 0),
+      draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
+      matches_played: pr1.matches_played + 1,
+    })
+    .eq("id", pr1.id);
+  if (pr2) {
     await db
       .from("profiles")
       .update({
-        elo: pr1.elo + d1,
-        wins: pr1.wins + (result1 === 1 ? 1 : 0),
-        losses: pr1.losses + (result1 === 0 ? 1 : 0),
-        draws: pr1.draws + (result1 === 0.5 ? 1 : 0),
-        matches_played: pr1.matches_played + 1,
+        ...(isRanked ? { elo: pr2.elo + d2 } : {}),
+        wins: pr2.wins + (result1 === 0 ? 1 : 0),
+        losses: pr2.losses + (result1 === 1 ? 1 : 0),
+        draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
+        matches_played: pr2.matches_played + 1,
       })
-      .eq("id", pr1.id);
-    if (pr2) {
-      await db
-        .from("profiles")
-        .update({
-          elo: pr2.elo + d2,
-          wins: pr2.wins + (result1 === 0 ? 1 : 0),
-          losses: pr2.losses + (result1 === 1 ? 1 : 0),
-          draws: pr2.draws + (result1 === 0.5 ? 1 : 0),
-          matches_played: pr2.matches_played + 1,
-        })
-        .eq("id", pr2.id);
-    }
+      .eq("id", pr2.id);
   }
 
   return updated as MatchRow;

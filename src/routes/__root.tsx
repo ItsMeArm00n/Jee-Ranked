@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -147,6 +148,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isGuest = pathname.startsWith("/guest");
   const [showSplash, setShowSplash] = useState(true);
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
@@ -161,7 +164,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {showSplash && (
+      {showSplash && !isGuest && (
         <SplashScreen
           onDone={() => {
             setShowSplash(false);
@@ -169,7 +172,7 @@ function RootComponent() {
           }}
         />
       )}
-      {showBetaNotice && <BetaNotice onDismiss={() => setShowBetaNotice(false)} />}
+      {showBetaNotice && !isGuest && <BetaNotice onDismiss={() => setShowBetaNotice(false)} />}
       <NavigationLoader />
       <div className="flex min-h-screen flex-col">
         <div className="flex-1">

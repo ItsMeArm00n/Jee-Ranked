@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/Avatar";
 import { AdminTag } from "@/components/AdminTag";
@@ -99,6 +101,7 @@ const FAQ = [
 function Home() {
   const { session } = useSession();
   const { play } = useSfx();
+  const [showEntry, setShowEntry] = useState(false);
   const profileFn = useServerFn(getMyProfile);
   const leaderboard = useQuery({ queryKey: ["leaderboard"], queryFn: () => getLeaderboard() });
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => getGlobalStats() });
@@ -167,14 +170,28 @@ function Home() {
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <Link
-                to={session ? "/play" : "/auth"}
-                onMouseEnter={() => play("hover")}
-                onFocus={() => play("hover")}
-                className="cta-sweep animate-enter block bg-primary px-12 py-6 text-center font-display text-3xl uppercase italic tracking-tighter text-primary-foreground [animation-delay:120ms]"
-              >
-                Find Opponent
-              </Link>
+              {session ? (
+                <Link
+                  to="/play"
+                  onMouseEnter={() => play("hover")}
+                  onFocus={() => play("hover")}
+                  className="cta-sweep animate-enter block bg-primary px-12 py-6 text-center font-display text-3xl uppercase italic tracking-tighter text-primary-foreground [animation-delay:120ms]"
+                >
+                  Play
+                </Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    play("click");
+                    setShowEntry(true);
+                  }}
+                  onMouseEnter={() => play("hover")}
+                  onFocus={() => play("hover")}
+                  className="cta-sweep animate-enter block bg-primary px-12 py-6 text-center font-display text-3xl uppercase italic tracking-tighter text-primary-foreground [animation-delay:120ms]"
+                >
+                  Find Opponent
+                </button>
+              )}
               <a
                 href="#how"
                 onMouseEnter={() => play("hover")}
@@ -468,17 +485,89 @@ function Home() {
             <p className="mx-auto max-w-lg font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Ten questions decide who moves up the ladder tonight.
             </p>
-            <Link
-              to={session ? "/play" : "/auth"}
-              onMouseEnter={() => play("hover")}
-              onFocus={() => play("hover")}
-              className="cta-sweep glow-pulse inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
-            >
-              Enter the arena
-            </Link>
+            {session ? (
+              <Link
+                to="/play"
+                onMouseEnter={() => play("hover")}
+                onFocus={() => play("hover")}
+                className="cta-sweep glow-pulse inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
+              >
+                Enter the arena
+              </Link>
+            ) : (
+              <button
+                onClick={() => {
+                  play("click");
+                  setShowEntry(true);
+                }}
+                onMouseEnter={() => play("hover")}
+                onFocus={() => play("hover")}
+                className="cta-sweep glow-pulse inline-block bg-primary px-14 py-6 font-display text-3xl uppercase italic tracking-tighter text-primary-foreground"
+              >
+                Enter the arena
+              </button>
+            )}
           </div>
         </section>
       </main>
+
+      {showEntry
+        ? createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur-sm">
+              <div className="animate-enter w-full max-w-md border border-border bg-surface p-8">
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                    Enter the arena
+                  </div>
+                  <button
+                    onClick={() => {
+                      play("cancel");
+                      setShowEntry(false);
+                    }}
+                    onMouseEnter={() => play("hover")}
+                    aria-label="Close"
+                    className="focus-ring font-mono text-lg text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <h2 className="mask-reveal mt-3 font-display text-4xl uppercase italic leading-none tracking-tighter">
+                  <span>
+                    Create an account <span className="text-primary">or play as guest</span>
+                  </span>
+                </h2>
+
+                <div className="mt-8 flex flex-col gap-3">
+                  <Link
+                    to="/auth"
+                    onClick={() => play("whoosh")}
+                    onMouseEnter={() => play("hover")}
+                    className="cta-sweep bg-primary px-8 py-5 text-center font-mono text-sm uppercase tracking-widest text-primary-foreground"
+                  >
+                    Create account
+                  </Link>
+                  <Link
+                    to="/guest"
+                    onClick={() => play("whoosh")}
+                    onMouseEnter={() => play("hover")}
+                    className="press-pop border border-border px-8 py-5 text-center font-mono text-sm uppercase tracking-widest hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                  >
+                    Play as guest
+                  </Link>
+                </div>
+
+                <div className="mt-6 border-t border-border pt-5 font-mono text-[10px] uppercase leading-relaxed tracking-widest text-muted-foreground">
+                  As a guest you can play unranked{" "}
+                  <span className="text-foreground">solo or vs a bot</span>. Your name, answers and
+                  score are <span className="text-foreground">not saved</span> — no ELO, no
+                  leaderboard, no match history. Create an account to unlock ranked duels, ELO and
+                  replays.
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
