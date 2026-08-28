@@ -16,7 +16,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SplashScreen } from "@/components/SplashScreen";
 import { BetaNotice, hasSeenBetaNotice } from "@/components/BetaNotice";
+import {
+  ServiceNotice,
+  hasSeenServiceNotice,
+  isServiceNoticeEnabled,
+} from "@/components/ServiceNotice";
 import { NavigationLoader } from "@/components/NavigationLoader";
+
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -152,6 +158,9 @@ function RootComponent() {
   const isGuest = pathname.startsWith("/guest");
   const [showSplash, setShowSplash] = useState(true);
   const [showBetaNotice, setShowBetaNotice] = useState(false);
+  const [showServiceNotice, setShowServiceNotice] = useState(
+    isServiceNoticeEnabled() && !hasSeenServiceNotice(),
+  );
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -175,6 +184,9 @@ function RootComponent() {
       {showBetaNotice && !isGuest && <BetaNotice onDismiss={() => setShowBetaNotice(false)} />}
       <NavigationLoader />
       <div className="flex min-h-screen flex-col">
+        {showServiceNotice && !isGuest && (
+          <ServiceNotice onDismiss={() => setShowServiceNotice(false)} />
+        )}
         <div className="flex-1">
           <div className="page-enter">
             <Outlet />
