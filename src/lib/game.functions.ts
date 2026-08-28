@@ -1275,6 +1275,8 @@ export type AdminStats = {
   duelsMonth: number;
   duelsTotal: number;
   newPlayersMonth: number;
+  guestPlaysMonth: number;
+  guestPlaysTotal: number;
 };
 
 function countDistinctPlayers(
@@ -1300,7 +1302,7 @@ export const getAdminStats = createServerFn({ method: "GET" })
     const weekAgo = new Date(now.getTime() - 7 * 24 * 3600e3).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const [day, week, month, total, newPlayers] = await Promise.all([
+    const [day, week, month, total, newPlayers, guestMonth, guestTotal] = await Promise.all([
       db.from("matches").select("player1_id,player2_id").gte("created_at", dayAgo),
       db.from("matches").select("player1_id,player2_id").gte("created_at", weekAgo),
       db
@@ -1313,6 +1315,11 @@ export const getAdminStats = createServerFn({ method: "GET" })
         .select("*", { count: "exact", head: true })
         .eq("is_bot", false)
         .gte("created_at", monthStart),
+      db
+        .from("guest_plays")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", monthStart),
+      db.from("guest_plays").select("*", { count: "exact", head: true }),
     ]);
 
     return {
@@ -1322,5 +1329,7 @@ export const getAdminStats = createServerFn({ method: "GET" })
       duelsMonth: month.count ?? month.data?.length ?? 0,
       duelsTotal: total.count ?? 0,
       newPlayersMonth: newPlayers.count ?? 0,
+      guestPlaysMonth: guestMonth.count ?? 0,
+      guestPlaysTotal: guestTotal.count ?? 0,
     };
   });

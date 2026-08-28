@@ -7,7 +7,7 @@ export const Route = createFileRoute("/guest")({
       {
         name: "description",
         content:
-          "Try JEE Ranked without an account. Play unranked solo or against a bot — nothing is saved.",
+          "Try JEE Ranked without an account. Play unranked solo or against a bot — no account, no personal data saved.",
       },
     ],
   }),

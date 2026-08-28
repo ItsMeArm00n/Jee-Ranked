@@ -10,12 +10,12 @@ export function isServiceNoticeEnabled(): boolean {
 
 export function hasSeenServiceNotice(): boolean {
   if (typeof window === "undefined") return true;
-  return localStorage.getItem(SERVICE_NOTICE_SEEN_KEY) === "1";
+  return sessionStorage.getItem(SERVICE_NOTICE_SEEN_KEY) === "1";
 }
 
 export function markServiceNoticeSeen() {
   if (typeof window === "undefined") return;
-  localStorage.setItem(SERVICE_NOTICE_SEEN_KEY, "1");
+  sessionStorage.setItem(SERVICE_NOTICE_SEEN_KEY, "1");
 }
 
 interface ServiceNoticeProps {

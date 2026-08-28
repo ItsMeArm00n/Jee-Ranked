@@ -560,8 +560,8 @@ function Home() {
                   As a guest you can play unranked{" "}
                   <span className="text-foreground">solo or vs a bot</span>. Your name, answers and
                   score are <span className="text-foreground">not saved</span> — no ELO, no
-                  leaderboard, no match history. Create an account to unlock ranked duels, ELO and
-                  replays.
+                  leaderboard, no match history (we only count games anonymously). Create an account
+                  to unlock ranked duels, ELO and replays.
                 </div>
               </div>
             </div>,

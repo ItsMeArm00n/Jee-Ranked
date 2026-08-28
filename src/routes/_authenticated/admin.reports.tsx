@@ -155,10 +155,12 @@ function StatsStrip() {
     { label: "Duels / month", value: stats?.duelsMonth },
     { label: "Duels total", value: stats?.duelsTotal },
     { label: "New players / month", value: stats?.newPlayersMonth },
+    { label: "Guest plays / month", value: stats?.guestPlaysMonth, accent: true },
+    { label: "Guest plays total", value: stats?.guestPlaysTotal },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-px border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-px border border-border bg-border sm:grid-cols-4">
       {cells.map((c) => (
         <div key={c.label} className="bg-surface/30 px-4 py-5">
           <div

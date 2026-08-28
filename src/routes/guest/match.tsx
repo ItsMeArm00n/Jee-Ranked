@@ -11,6 +11,8 @@ import {
   type GuestSnapshot,
 } from "@/lib/guest.engine";
 import { getGuestGame } from "@/lib/guest.clientstore";
+import { useServerFn } from "@tanstack/react-start";
+import { recordGuestPlay } from "@/lib/guest.functions";
 
 export const Route = createFileRoute("/guest/match")({
   validateSearch: (search: Record<string, unknown>) =>
@@ -80,13 +82,23 @@ function GuestMatch() {
     setSelected(null);
   }, [snap?.question?.index, play]);
 
-  // Result fanfare, once per finished match.
+  // Result fanfare + anonymous guest-play analytics, once per finished match.
+  const guestFn = useServerFn(recordGuestPlay);
   const endedFor = useRef<string | null>(null);
   useEffect(() => {
     if (snap?.status !== "finished" || !snap.result || endedFor.current === token) return;
     endedFor.current = token;
     play(snap.result.outcome === "loss" ? "defeat" : "victory");
-  }, [snap?.status, snap?.result, token, play]);
+    guestFn({
+      data: {
+        token,
+        mode: snap.mode,
+        subject: snap.subject,
+        correct: snap.result.myCorrect,
+        total: snap.total,
+      },
+    }).catch(() => {});
+  }, [snap?.status, snap?.result, token, play, guestFn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Countdown ticks.
   useEffect(() => {
@@ -193,7 +205,8 @@ function GuestMatch() {
               </div>
               <div className="mt-8 h-px w-full bg-border" />
               <p className="ticker-enter mt-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground [animation-delay:500ms]">
-                Nothing from this guest game was saved — no ELO, no leaderboard, no history.
+                Nothing from this guest game was saved — no ELO, no leaderboard, no history. We
+                count games anonymously.
               </p>
             </div>
           </div>

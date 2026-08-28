@@ -23,6 +23,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      guest_plays: {
+        Row: {
+          correct: number;
+          created_at: string;
+          id: string;
+          mode: string;
+          subject: string;
+          total: number;
+        };
+        Insert: {
+          correct: number;
+          created_at?: string;
+          id?: string;
+          mode: string;
+          subject: string;
+          total: number;
+        };
+        Update: {
+          correct?: number;
+          created_at?: string;
+          id?: string;
+          mode?: string;
+          subject?: string;
+          total?: number;
+        };
+        Relationships: [];
+      };
       match_answers: {
         Row: {
           answered_at: string;
