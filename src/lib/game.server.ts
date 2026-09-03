@@ -294,9 +294,10 @@ export async function settleMatch(
   if (!isSolo && !pr2) return null;
 
   const isRanked = match.is_ranked !== false;
+  const isBotMatch = !!match.is_bot_match;
 
-  const d1 = isRanked && pr2 ? eloDelta(pr1.elo, pr2.elo, result1) : 0;
-  const d2 = isRanked && pr2 ? eloDelta(pr2.elo, pr1.elo, 1 - result1) : 0;
+  const d1 = isRanked && pr2 && !isBotMatch ? eloDelta(pr1.elo, pr2.elo, result1) : 0;
+  const d2 = isRanked && pr2 && !isBotMatch ? eloDelta(pr2.elo, pr1.elo, 1 - result1) : 0;
 
   const { data: updated, error } = await db
     .from("matches")

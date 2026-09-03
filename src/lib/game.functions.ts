@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAdmin } from "@/integrations/supabase/admin-middleware";
 import { z } from "zod";
+import { checkRateLimit } from "./rate-limit";
 
 export const getAllQuestions = createServerFn({ method: "GET" })
   .middleware([requireAdmin])
@@ -109,8 +110,8 @@ export const updateProfile = createServerFn({ method: "POST" })
           .string()
           .max(150_000, "Avatar file is too large")
           .refine(
-            (v) => v === "" || v.startsWith("data:image/") || v.startsWith("https://"),
-            "Avatar must be an image or an https:// URL",
+            (v) => v === "" || /^data:image\/(png|jpeg|gif|webp);base64,/.test(v),
+            "Avatar must be a PNG, JPEG, GIF, or WebP image",
           )
           .optional(),
       })
@@ -1029,7 +1030,10 @@ export const getQuestionExplanations = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if (!checkRateLimit(`explanations:${context.userId}`, 5, 60 * 60 * 1000)) {
+      throw new Error("Too many requests — please wait before requesting more explanations");
+    }
     const { generateWithFallback } = await import("./gemini.server");
 
     const questionsForPrompt = data.questions.map((q) => ({

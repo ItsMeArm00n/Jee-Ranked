@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { pickGuestQuestions } from "./guest.server";
 import { newGuestBundle, type GuestMode } from "./guest.engine";
+import { checkRateLimit } from "./rate-limit";
 
 const subjectEnum = z.enum(["Physics", "Chemistry", "Mathematics", "All"]);
 
@@ -23,6 +24,9 @@ export const guestStart = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    if (!checkRateLimit("guestStart", 10, 60 * 60 * 1000)) {
+      throw new Error("Too many requests — please try again later");
+    }
     const count = 10;
     const questions = await pickGuestQuestions(count, data.subject === "All" ? null : data.subject);
     if (questions.length === 0) throw new Error("No questions available for this subject yet");
@@ -52,6 +56,9 @@ const guestPlaySchema = z.object({
 export const recordGuestPlay = createServerFn({ method: "POST" })
   .inputValidator((d) => guestPlaySchema.parse(d))
   .handler(async ({ data }) => {
+    if (!checkRateLimit("recordGuestPlay", 30, 60 * 60 * 1000)) {
+      return { ok: true as const };
+    }
     try {
       const { adminClient } = await import("./game.server");
       await adminClient().from("guest_plays").insert({

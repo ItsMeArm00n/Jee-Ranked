@@ -1,4 +1,5 @@
 import katex from "katex";
+import DOMPurify from "dompurify";
 
 export function wrapBareLatex(text: string): string {
   if (text.includes("$")) return text;
@@ -78,7 +79,8 @@ function wrapBareLatexCommands(text: string): string {
 
   // Find bare LaTeX command sequences outside math delimiters and wrap them.
   // We look for \cmd{…} patterns (with brace matching) and also ^{…} / _{…}.
-  const LATEX_CMD = /\\(?:operatorname|mathrm|mathbb|mathcal|text|over|left|right|frac|sqrt|sum|prod|int|lim|sin|cos|tan|log|ln|exp|det|adj|mod|max|min|infty|partial|nabla|alpha|beta|gamma|delta|epsilon|theta|lambda|sigma|omega|phi|psi|chi|rho|tau|pi|mu|nu|xi|zeta|eta|kappa|veta|upsilon|ell|in|subset|supset|cup|cap|emptyset|forall|exists|nexists|therefore|because|neq|leq|geq|approx|equiv|sim|simeq|propto|perp|parallel|angle|triangle|circ|cdot|times|div|pm|mp|ast|star|dagger|vee|wedge|oplus|otimes|leqslant|geqslant|ll|gg|rightarrow|leftarrow|leftrightarrow|Rightarrow|Leftarrow|Leftrightarrow|uparrow|downarrow|to|mapsto|implies|iff|land|lor|lnot|neg)\s*\{/;
+  const LATEX_CMD =
+    /\\(?:operatorname|mathrm|mathbb|mathcal|text|over|left|right|frac|sqrt|sum|prod|int|lim|sin|cos|tan|log|ln|exp|det|adj|mod|max|min|infty|partial|nabla|alpha|beta|gamma|delta|epsilon|theta|lambda|sigma|omega|phi|psi|chi|rho|tau|pi|mu|nu|xi|zeta|eta|kappa|veta|upsilon|ell|in|subset|supset|cup|cap|emptyset|forall|exists|nexists|therefore|because|neq|leq|geq|approx|equiv|sim|simeq|propto|perp|parallel|angle|triangle|circ|cdot|times|div|pm|mp|ast|star|dagger|vee|wedge|oplus|otimes|leqslant|geqslant|ll|gg|rightarrow|leftarrow|leftrightarrow|Rightarrow|Leftarrow|Leftrightarrow|uparrow|downarrow|to|mapsto|implies|iff|land|lor|lnot|neg)\s*\{/;
   const BARESUPER = /(?<![\\$a-zA-Z{}])\^{/;
   const BARESUB = /(?<![\\$a-zA-Z{}])_{/;
 
@@ -176,5 +178,83 @@ function renderMath(text: string): string {
 export function renderLatex(text: string): string {
   const cleaned = cleanImportedText(text);
   const wrapped = wrapBareLatexCommands(cleaned);
-  return renderMath(wrapped);
+  const html = renderMath(wrapped);
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "span",
+      "div",
+      "p",
+      "br",
+      "b",
+      "i",
+      "em",
+      "strong",
+      "u",
+      "s",
+      "sub",
+      "sup",
+      "svg",
+      "math",
+      "semantics",
+      "annotation",
+      "mrow",
+      "mi",
+      "mo",
+      "mn",
+      "ms",
+      "mfrac",
+      "msqrt",
+      "mroot",
+      "msup",
+      "msub",
+      "msubsup",
+      "munder",
+      "mover",
+      "munderover",
+      "mtext",
+      "mpadded",
+      "mphantom",
+      "mglyph",
+      "mstyle",
+      "mtable",
+      "mtr",
+      "mtd",
+      "mlabeledtr",
+      "none",
+      "enclose",
+      "a",
+      "img",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+    ],
+    ALLOWED_ATTR: [
+      "class",
+      "style",
+      "id",
+      "title",
+      "aria-hidden",
+      "mathvariant",
+      "stretchy",
+      "fence",
+      "separator",
+      "accent",
+      "accentunder",
+      "symmetric",
+      "movablelimits",
+      "linethickness",
+      "minlabelspacing",
+      "depth",
+      "height",
+      "width",
+      "lspace",
+      "rspace",
+      "voffset",
+      "href",
+    ],
+    ALLOW_DATA_ATTR: false,
+  });
 }
